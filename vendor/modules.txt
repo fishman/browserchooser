@@ -1,0 +1,2 @@
+# fyne.io/fyne v1.4.3
+## explicit; go 1.12
