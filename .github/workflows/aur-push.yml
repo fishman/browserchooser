@@ -39,10 +39,10 @@ jobs:
             cd /build
             useradd -m builder
             chown -R builder /build
-            runuser -u builder -- make aur
-            runuser -u builder -- make aur-x11
-            runuser -u builder -- sh -c "cd /build/.build-aur && makepkg --printsrcinfo > .SRCINFO"
-            runuser -u builder -- sh -c "cd /build/.build-aur-x11 && makepkg --printsrcinfo > .SRCINFO"
+            runuser -u builder --preserve-environment -- make aur
+            runuser -u builder --preserve-environment -- make aur-x11
+            runuser -u builder --preserve-environment -- sh -c "cd /build/.build-aur && makepkg --printsrcinfo > .SRCINFO"
+            runuser -u builder --preserve-environment -- sh -c "cd /build/.build-aur-x11 && makepkg --printsrcinfo > .SRCINFO"
           '
 
       - name: Push to AUR
