@@ -118,13 +118,14 @@ github.com/go-gl/gl/v2.1/gl
 github.com/go-gl/gl/v2.1/gl/KHR
 github.com/go-gl/gl/v3.1/gles2
 github.com/go-gl/gl/v3.1/gles2/KHR
-# github.com/go-gl/glfw/v3.4/glfw v0.1.0-pre.1.0.20260707082822-2a407d02d01a
+# github.com/go-gl/glfw/v3.4/glfw v0.1.0-pre.2
 ## explicit; go 1.19
 github.com/go-gl/glfw/v3.4/glfw
 github.com/go-gl/glfw/v3.4/glfw/glfw/deps
 github.com/go-gl/glfw/v3.4/glfw/glfw/deps/glad
 github.com/go-gl/glfw/v3.4/glfw/glfw/deps/mingw
 github.com/go-gl/glfw/v3.4/glfw/glfw/deps/wayland
+github.com/go-gl/glfw/v3.4/glfw/glfw/include
 github.com/go-gl/glfw/v3.4/glfw/glfw/include/GLFW
 github.com/go-gl/glfw/v3.4/glfw/glfw/src
 # github.com/go-text/render v0.2.1
