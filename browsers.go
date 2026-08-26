@@ -52,14 +52,19 @@ type row struct {
 }
 
 func detectBrowsers() []browser {
+	var list []browser
 	switch runtime.GOOS {
 	case "darwin":
-		return detectDarwin()
+		list = detectDarwin()
 	case "windows":
-		return detectWindows()
+		list = detectWindows()
 	default:
-		return detectLinux()
+		list = detectLinux()
 	}
+	if loadSettings().Firefox.Profiles {
+		list = append(list, firefoxProfiles()...)
+	}
+	return list
 }
 
 func fallbackBrowser() browser {

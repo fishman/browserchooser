@@ -63,6 +63,20 @@ The first matching rule wins; a match opens its browser without showing the
 picker. Browser ids come from the executable basename (e.g. `firefox`,
 `google-chrome`).
 
+## Settings
+
+Optional `config.toml` in the user config dir
+(`$XDG_CONFIG_HOME/browserchooser/config.toml`). Off by default.
+
+| key | effect |
+|-----|--------|
+| `firefox.profiles` | list every Firefox profile (from `profiles.ini`) as its own selection, launched with `-profile` |
+
+```toml
+[firefox]
+profiles = true
+```
+
 ## Build
 
 ```sh

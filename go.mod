@@ -4,6 +4,7 @@ go 1.26.6
 
 require (
 	fyne.io/fyne/v2 v2.8.1-rc3
+	github.com/BurntSushi/toml v1.6.0
 	github.com/atotto/clipboard v0.1.4
 	github.com/expr-lang/expr v1.17.8
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade
@@ -16,7 +17,6 @@ require (
 
 require (
 	fyne.io/systray v1.12.3-0.20260810170012-af4e8e793ec4 // indirect
-	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/anthonynsimon/bild v0.14.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
