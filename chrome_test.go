@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/BurntSushi/toml"
 )
 
 func TestParseChromeProfiles(t *testing.T) {
@@ -55,5 +57,42 @@ func TestParseChromiumProfiles(t *testing.T) {
 func TestParseChromeProfilesEmpty(t *testing.T) {
 	if got := parseChromeProfiles([]byte(`{"profile":{}}`), t.TempDir(), "x", "Chrome", "chrome-", "google-chrome"); len(got) != 0 {
 		t.Fatalf("want 0, got %d", len(got))
+	}
+}
+
+func TestChromeBrowserConfigParsing(t *testing.T) {
+	data := `
+[[chrome.browsers]]
+name = "Brave"
+data_dir = "BraveSoftware/Brave-Browser"
+binary = "brave-browser"
+mac_binary = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+`
+	var s settings
+	if err := toml.Unmarshal([]byte(data), &s); err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Chrome.Browsers) != 1 {
+		t.Fatalf("want 1 browser, got %d", len(s.Chrome.Browsers))
+	}
+	b := s.Chrome.Browsers[0]
+	if b.Name != "Brave" || b.DataDir != "BraveSoftware/Brave-Browser" || b.Binary != "brave-browser" || b.MacBin != "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser" {
+		t.Errorf("got %+v", b)
+	}
+}
+
+func TestChromeFamilyFromConfig(t *testing.T) {
+	f := chromeFamilyFromConfig(chromeBrowserConfig{
+		Name: "Brave", DataDir: "BraveSoftware/Brave-Browser",
+		Binary: "brave-browser", MacBin: "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+	})
+	if f.prefix != "brave-" || f.icon != "brave" {
+		t.Errorf("prefix/icon %q / %q", f.prefix, f.icon)
+	}
+	if f.linuxDir != "BraveSoftware/Brave-Browser" || f.linuxBins[0] != "brave-browser" {
+		t.Errorf("linux dir/bin %q / %v", f.linuxDir, f.linuxBins)
+	}
+	if f.macBin == "" {
+		t.Error("mac_binary should be kept")
 	}
 }

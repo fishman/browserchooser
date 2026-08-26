@@ -17,24 +17,50 @@ type chromeFamily struct {
 	linuxDir            string
 	linuxBins           []string
 	macDir, macApp      string
+	macBin              string
 	winDir, winExe      string
 }
 
-var chromeFamilies = []chromeFamily{
-	{
-		brand: "Chrome", prefix: "chrome-", icon: "google-chrome",
-		linuxDir:  "google-chrome",
-		linuxBins: []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable"},
-		macDir:    "Google/Chrome", macApp: "Google Chrome",
-		winDir: `Google\Chrome`, winExe: "chrome.exe",
-	},
-	{
-		brand: "Chromium", prefix: "chromium-", icon: "chromium",
-		linuxDir:  "chromium",
-		linuxBins: []string{"chromium", "chromium-browser"},
-		macDir:    "Chromium", macApp: "Chromium",
-		winDir: "Chromium", winExe: "chrome.exe",
-	},
+// chromeFamilies returns the built-in Chromium-family browsers plus any added
+// in config.toml as [[chrome.browsers]], so a fork needs a config entry, not a
+// code change.
+func chromeFamilies() []chromeFamily {
+	fams := []chromeFamily{
+		{
+			brand: "Chrome", prefix: "chrome-", icon: "google-chrome",
+			linuxDir:  "google-chrome",
+			linuxBins: []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable"},
+			macDir:    "Google/Chrome", macApp: "Google Chrome",
+			winDir: `Google\Chrome`, winExe: "chrome.exe",
+		},
+		{
+			brand: "Chromium", prefix: "chromium-", icon: "chromium",
+			linuxDir:  "chromium",
+			linuxBins: []string{"chromium", "chromium-browser"},
+			macDir:    "Chromium", macApp: "Chromium",
+			winDir: "Chromium", winExe: "chrome.exe",
+		},
+	}
+	for _, c := range loadSettings().Chrome.Browsers {
+		if c.Name != "" && c.DataDir != "" && c.Binary != "" {
+			fams = append(fams, chromeFamilyFromConfig(c))
+		}
+	}
+	return fams
+}
+
+// chromeFamilyFromConfig maps a config entry to a family: the id prefix and
+// icon derive from the name, and the single data_dir applies on every platform.
+func chromeFamilyFromConfig(c chromeBrowserConfig) chromeFamily {
+	id := sanitizeID(c.Name)
+	return chromeFamily{
+		brand: c.Name, prefix: id + "-", icon: id,
+		linuxDir: c.DataDir, macDir: c.DataDir, winDir: c.DataDir,
+		linuxBins: []string{c.Binary},
+		macApp:    c.Name,
+		macBin:    c.MacBin,
+		winExe:    c.Binary,
+	}
 }
 
 // familyBase is the "User Data" dir holding Local State and one subdir per
@@ -59,6 +85,9 @@ func familyBase(f chromeFamily) string {
 func familyBin(f chromeFamily) string {
 	switch runtime.GOOS {
 	case "darwin":
+		if f.macBin != "" {
+			return f.macBin
+		}
 		return filepath.Join("/Applications", f.macApp+".app", "Contents", "MacOS", f.macApp)
 	case "windows":
 		if pf := os.Getenv("ProgramFiles"); pf != "" {
@@ -86,7 +115,7 @@ func exists(p string) bool {
 // install, so profiles that are not the default are listable and routable.
 func chromeProfiles() []browser {
 	var list []browser
-	for _, f := range chromeFamilies {
+	for _, f := range chromeFamilies() {
 		data, err := os.ReadFile(filepath.Join(familyBase(f), "Local State"))
 		if err != nil {
 			continue

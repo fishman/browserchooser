@@ -15,10 +15,20 @@ type settings struct {
 		Profiles bool `toml:"profiles"`
 	} `toml:"firefox"`
 	Chrome struct {
-		Profiles bool `toml:"profiles"`
+		Profiles bool                  `toml:"profiles"`
+		Browsers []chromeBrowserConfig `toml:"browsers"`
 	} `toml:"chrome"`
 	// Rules route URLs to a browser; the first matching rule wins.
 	Rules []rule `toml:"rules"`
+}
+
+// chromeBrowserConfig adds a Chromium-family browser whose profiles are read
+// from its "Local State", so forks (Brave, Edge, ...) need no code change.
+type chromeBrowserConfig struct {
+	Name    string `toml:"name"`
+	DataDir string `toml:"data_dir"`
+	Binary  string `toml:"binary"`
+	MacBin  string `toml:"mac_binary"`
 }
 
 func settingsPath() string {

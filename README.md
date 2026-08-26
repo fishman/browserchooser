@@ -121,7 +121,8 @@ Optional `config.toml` in the user config dir
 |-----|--------|
 | `theme` | color scheme: `auto` (default) follows the system, `light` and `dark` force a variant |
 | `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
-| `chrome.profiles` | list every Chromium-family profile (Google Chrome and Chromium, from each `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
+| `chrome.profiles` | list every Chromium-family profile (Google Chrome, Chromium, and any `chrome.browsers` entries, from each `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
+| `chrome.browsers` | add another Chromium-family browser (Brave, Edge, ...) whose profiles should be listed, without a code change. Each entry needs `name`, `data_dir`, `binary`, and optional `mac_binary`; see below |
 | `rules` | an array of `expr` + `browser` pairs routing URLs; see Rules |
 
 ```toml
@@ -136,6 +137,21 @@ profiles = true
 [[rules]]
 expr = 'link contains "github.com"'
 browser = "firefox"
+```
+
+**Adding another Chromium browser** (`[[chrome.browsers]]`): list a Chromium
+fork's profiles without changing code. `data_dir` is the relative path under
+`~/.config` (Linux), `~/Library/Application Support` (macOS), and
+`%LOCALAPPDATA%` (Windows); `binary` is the launcher command. Profiles get the
+id `chromium-`-style `browsername-<dir>` (here `brave-default`), so rules can
+route to them:
+
+```toml
+[[chrome.browsers]]
+name = "Brave"
+data_dir = "BraveSoftware/Brave-Browser"
+binary = "brave-browser"
+# mac_binary = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 
 ## Build
