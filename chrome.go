@@ -9,39 +9,72 @@ import (
 	"sort"
 )
 
-// chromeBase is the "User Data" dir that holds Local State and one subdir per
-// profile (Default, Profile 1, ...).
-func chromeBase() string {
+// chromeFamily describes one Chromium-family browser so profile detection is
+// data, not one implementation per browser. Each family names its data dir and
+// binary per platform; adding a browser is a new table row.
+type chromeFamily struct {
+	brand, prefix, icon string
+	linuxDir            string
+	linuxBins           []string
+	macDir, macApp      string
+	winDir, winExe      string
+}
+
+var chromeFamilies = []chromeFamily{
+	{
+		brand: "Chrome", prefix: "chrome-", icon: "google-chrome",
+		linuxDir:  "google-chrome",
+		linuxBins: []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable"},
+		macDir:    "Google/Chrome", macApp: "Google Chrome",
+		winDir: `Google\Chrome`, winExe: "chrome.exe",
+	},
+	{
+		brand: "Chromium", prefix: "chromium-", icon: "chromium",
+		linuxDir:  "chromium",
+		linuxBins: []string{"chromium", "chromium-browser"},
+		macDir:    "Chromium", macApp: "Chromium",
+		winDir: "Chromium", winExe: "chrome.exe",
+	},
+}
+
+// familyBase is the "User Data" dir holding Local State and one subdir per
+// profile (Default, Profile 1, ...), per the platform's convention.
+func familyBase(f chromeFamily) string {
 	home, _ := os.UserHomeDir()
 	switch runtime.GOOS {
 	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "Google", "Chrome")
+		return filepath.Join(home, "Library", "Application Support", f.macDir)
 	case "windows":
 		if app := os.Getenv("LOCALAPPDATA"); app != "" {
-			return filepath.Join(app, "Google", "Chrome", "User Data")
+			return filepath.Join(app, f.winDir, "User Data")
 		}
+	default:
+		return filepath.Join(home, ".config", f.linuxDir)
 	}
-	return filepath.Join(home, ".config", "google-chrome")
+	return filepath.Join(home, ".config", f.linuxDir)
 }
 
-func chromeBin() string {
+// familyBin resolves the family's launcher, checking the platform's usual
+// locations and falling back to a bare command name.
+func familyBin(f chromeFamily) string {
 	switch runtime.GOOS {
 	case "darwin":
-		return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+		return filepath.Join("/Applications", f.macApp+".app", "Contents", "MacOS", f.macApp)
 	case "windows":
 		if pf := os.Getenv("ProgramFiles"); pf != "" {
-			if p := filepath.Join(pf, "Google", "Chrome", "Application", "chrome.exe"); exists(p) {
+			if p := filepath.Join(pf, f.winDir, "Application", f.winExe); exists(p) {
 				return p
 			}
 		}
-		return "chrome"
-	}
-	for _, name := range []string{"google-chrome", "google-chrome-stable", "google-chrome-beta", "google-chrome-unstable"} {
-		if p, err := exec.LookPath(name); err == nil {
-			return p
+		return f.winExe
+	default:
+		for _, name := range f.linuxBins {
+			if p, err := exec.LookPath(name); err == nil {
+				return p
+			}
 		}
+		return f.linuxBins[0]
 	}
-	return "google-chrome"
 }
 
 func exists(p string) bool {
@@ -50,19 +83,16 @@ func exists(p string) bool {
 }
 
 // chromeProfiles returns one browser per profile for every Chromium-family
-// install found (Google Chrome and Chromium), so profiles that are not the
-// default are listable and routable.
+// install, so profiles that are not the default are listable and routable.
 func chromeProfiles() []browser {
 	var list []browser
-	add := func(base, bin, brand, prefix, icon string) {
-		data, err := os.ReadFile(filepath.Join(base, "Local State"))
+	for _, f := range chromeFamilies {
+		data, err := os.ReadFile(filepath.Join(familyBase(f), "Local State"))
 		if err != nil {
-			return
+			continue
 		}
-		list = append(list, parseChromeProfiles(data, base, bin, brand, prefix, icon)...)
+		list = append(list, parseChromeProfiles(data, familyBase(f), familyBin(f), f.brand, f.prefix, f.icon)...)
 	}
-	add(chromeBase(), chromeBin(), "Chrome", "chrome-", "google-chrome")
-	add(chromiumBase(), chromiumBin(), "Chromium", "chromium-", "chromium")
 	return list
 }
 
@@ -94,32 +124,4 @@ func parseChromeProfiles(data []byte, base, bin, brand, prefix, icon string) []b
 			dir, ls.Profile.InfoCache[dir].Name, []string{bin, "--profile-directory=" + dir}))
 	}
 	return list
-}
-
-func chromiumBase() string {
-	home, _ := os.UserHomeDir()
-	switch runtime.GOOS {
-	case "darwin":
-		return filepath.Join(home, "Library", "Application Support", "Chromium")
-	case "windows":
-		if app := os.Getenv("LOCALAPPDATA"); app != "" {
-			return filepath.Join(app, "Chromium", "User Data")
-		}
-	}
-	return filepath.Join(home, ".config", "chromium")
-}
-
-func chromiumBin() string {
-	switch runtime.GOOS {
-	case "darwin":
-		return "/Applications/Chromium.app/Contents/MacOS/Chromium"
-	case "windows":
-		return "chromium"
-	}
-	for _, name := range []string{"chromium", "chromium-browser"} {
-		if p, err := exec.LookPath(name); err == nil {
-			return p
-		}
-	}
-	return "chromium"
 }
