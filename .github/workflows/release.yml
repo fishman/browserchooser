@@ -20,6 +20,12 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Install Fyne cgo deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev libwayland-dev \
+            libxkbcommon-dev libdbus-1-dev
+
       - name: Derive and validate version
         id: ver
         env:
@@ -75,7 +81,9 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -e GIT_EMAIL="$GIT_EMAIL" -v "$PWD:/build" \
             archlinux/archlinux:base-devel bash -c '
             pacman -Syu --noconfirm >/dev/null
-            pacman -S --noconfirm --needed git go >/dev/null
+            pacman -S --noconfirm --needed git go libglvnd mesa libx11 \
+              libxrandr libxinerama libxcursor libxi libxkbcommon wayland \
+              xorgproto dbus >/dev/null
             cd /build
             make aur
           '

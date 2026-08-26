@@ -33,7 +33,9 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -e GIT_EMAIL="$GIT_EMAIL" -v "$PWD:/build" \
             archlinux/archlinux:base-devel bash -c '
             pacman -Syu --noconfirm >/dev/null
-            pacman -S --noconfirm --needed git >/dev/null
+            pacman -S --noconfirm --needed git libglvnd mesa libx11 \
+              libxrandr libxinerama libxcursor libxi libxkbcommon wayland \
+              xorgproto dbus >/dev/null
             cd /build
             make aur
             cd .build-aur
