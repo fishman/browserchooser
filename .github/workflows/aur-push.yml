@@ -1,9 +1,9 @@
 name: AUR push
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
 
 permissions:
   contents: read
@@ -11,18 +11,22 @@ permissions:
 jobs:
   aur:
     runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
 
       - name: Derive and validate version
         id: ver
         env:
-          REF: ${{ github.ref_name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          v="${REF#v}"
+          v="$(git describe --tags --exact-match "$HEAD_SHA" | sed 's/^v//')"
           [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
-            { echo "tag $REF is not vMAJOR.MINOR.PATCH" >&2; exit 1; }
+            { echo "no vMAJOR.MINOR.PATCH tag at $HEAD_SHA" >&2; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
       - name: Generate PKGBUILD + .SRCINFO
@@ -32,15 +36,11 @@ jobs:
         run: |
           docker run --rm -e VERSION="$VERSION" -e GIT_EMAIL="$GIT_EMAIL" -v "$PWD:/build" \
             archlinux/archlinux:base-devel bash -c '
-            pacman -Syu --noconfirm >/dev/null
-            pacman -S --noconfirm --needed git go libglvnd mesa libx11 \
-              libxrandr libxinerama libxcursor libxi libxxf86vm \
-              libxkbcommon wayland xorgproto >/dev/null
             cd /build
             useradd -m builder
             chown -R builder /build
-            runuser -u builder --preserve-environment -- make aur
-            runuser -u builder --preserve-environment -- make aur-x11
+            runuser -u builder --preserve-environment -- make aur-pkgbuild
+            runuser -u builder --preserve-environment -- make aur-x11-pkgbuild
             runuser -u builder --preserve-environment -- sh -c "cd /build/.build-aur && makepkg --printsrcinfo > .SRCINFO"
             runuser -u builder --preserve-environment -- sh -c "cd /build/.build-aur-x11 && makepkg --printsrcinfo > .SRCINFO"
           '
