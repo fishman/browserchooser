@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"fmt"
 	"image/color"
 	"log"
 	"os"
@@ -32,8 +33,21 @@ func main() {
 	})
 
 	url := ""
-	if len(os.Args) > 1 {
-		url = os.Args[1]
+	for _, a := range os.Args[1:] {
+		switch a {
+		case "--set-default":
+			if err := setDefault(); err != nil {
+				log.Fatalf("browserchooser: set default: %v", err)
+			}
+			return
+		case "-h", "--help":
+			usage()
+			return
+		default:
+			if url == "" {
+				url = a
+			}
+		}
 	}
 
 	a := app.NewWithID(appID)
@@ -433,6 +447,12 @@ func (e *numEntry) TypedShortcut(s fyne.Shortcut) {
 		return
 	}
 	e.Entry.TypedShortcut(s)
+}
+
+func usage() {
+	fmt.Println("Usage: browserchooser [--set-default] [url]")
+	fmt.Println("  --set-default  register as the default browser (Linux)")
+	fmt.Println("  url            open the picker for this link, or copy it")
 }
 
 func newLocalizer() *i18n.Localizer {

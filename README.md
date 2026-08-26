@@ -35,9 +35,16 @@ files on Linux, app bundles on macOS, and standard install paths on Windows.
 browserchooser https://example.com
 ```
 
-With no argument it opens as an interactive picker. To make it the default
-browser handler on Linux, install the desktop file and set it as the default
-for `text/html` / `x-scheme-handler/http(s)`.
+With no argument it opens as an interactive picker. Flags:
+
+| flag | action |
+|------|--------|
+| `--set-default` | register as the default browser (Linux) |
+| `--help` | show usage |
+
+`--set-default` installs the desktop file to `~/.local/share/applications/`
+and registers it as the default handler for `text/html`, `http`, `https`, and
+`ftp`. The binary must be on `PATH` for it to be invoked with URLs.
 
 ## Rules
 
