@@ -8,6 +8,9 @@ import (
 )
 
 type settings struct {
+	// Theme is the color scheme: "auto" follows the system (default),
+	// "light" and "dark" force a variant.
+	Theme   string `toml:"theme"`
 	Firefox struct {
 		Profiles bool `toml:"profiles"`
 	} `toml:"firefox"`
@@ -28,6 +31,7 @@ func settingsPath() string {
 // yields defaults: firefox profiles are listed unless explicitly disabled.
 func loadSettings() settings {
 	s := settings{}
+	s.Theme = "auto"
 	s.Firefox.Profiles = true
 	s.Chrome.Profiles = true
 	p := settingsPath()

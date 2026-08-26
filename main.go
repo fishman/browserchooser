@@ -58,7 +58,7 @@ func main() {
 			if err := b.open(url); err != nil {
 				log.Printf("browserchooser: open %s: %v", b.name, err)
 			} else {
-				recordUse(a.Preferences(), b.id)
+				recordUse(b.id)
 			}
 			return
 		}
@@ -99,7 +99,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	if len(u.browsers) == 0 {
 		u.browsers = []browser{fallbackBrowser()}
 	}
-	u.stats = loadStats(a.Preferences(), u.browsers)
+	u.stats = loadStats(u.browsers)
 	w.SetTitle(u.l(msgTitle))
 
 	u.entry = &numEntry{}
@@ -123,7 +123,6 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 		u.activate(i)
 	}
 	u.entry.onEsc = func() { u.a.Quit() }
-	u.entry.onTheme = u.toggleTheme
 	u.entry.onCtrlC = func() { u.copyAndQuit() }
 
 	u.list = widget.NewList(
@@ -364,9 +363,6 @@ func (u *appUI) activate(i int) {
 	u.a.Quit()
 }
 
-// applyTheme resolves the effective variant: a stored override (F2) wins,
-// otherwise the system's dark/light from ThemeVariant. u.dark mirrors it so
-// the chip and QR colors follow the same source.
 // focusEntry returns keyboard focus to the entry on the next event-loop tick.
 // Calling Canvas().Focus immediately after SetContent is dropped because the
 // new widget is not yet attached; deferring keeps Esc and the hotkeys alive.
@@ -376,35 +372,21 @@ func (u *appUI) focusEntry() {
 	})
 }
 
+// applyTheme resolves the effective variant from config: "light"/"dark" force
+// it, "auto" (default) follows the system's ThemeVariant. u.dark mirrors it so
+// the chip and QR colors follow the same source.
 func (u *appUI) applyTheme() {
 	v := theme.VariantDark
-	switch u.a.Preferences().IntWithFallback(prefTheme, -1) {
-	case 0:
+	switch loadSettings().Theme {
+	case "light":
 		v = theme.VariantLight
-	case 1:
+	case "dark":
 		v = theme.VariantDark
-	default:
-		v = u.a.Settings().ThemeVariant() // follow the system
+	default: // auto follows the system
+		v = u.a.Settings().ThemeVariant()
 	}
 	u.dark = v == theme.VariantDark
 	u.a.Settings().SetTheme(&nordTheme{variant: v})
-}
-
-func (u *appUI) toggleTheme() {
-	next := theme.VariantLight
-	if u.dark {
-		next = theme.VariantLight
-	} else {
-		next = theme.VariantDark
-	}
-	if next == theme.VariantDark {
-		u.a.Preferences().SetInt(prefTheme, 1)
-	} else {
-		u.a.Preferences().SetInt(prefTheme, 0)
-	}
-	u.applyTheme()
-	u.w.SetContent(u.content())
-	u.focusEntry()
 }
 
 func (u *appUI) copyAndQuit() {
@@ -420,7 +402,7 @@ func (u *appUI) launch(b *browser) {
 		log.Printf("browserchooser: open %s: %v", b.name, err)
 		return
 	}
-	recordUse(u.a.Preferences(), b.id)
+	recordUse(b.id)
 }
 
 func (u *appUI) l(id string) string {
@@ -442,7 +424,6 @@ type numEntry struct {
 	onSelect func(int)
 	onEsc    func()
 	onCtrlC  func()
-	onTheme  func()
 }
 
 // FocusLost pins keyboard focus back to the entry. Fyne only delivers key
@@ -471,12 +452,6 @@ func (e *numEntry) TypedKey(key *fyne.KeyEvent) {
 	if key.Name == fyne.KeyEscape {
 		if e.onEsc != nil {
 			e.onEsc()
-		}
-		return
-	}
-	if key.Name == fyne.KeyF2 {
-		if e.onTheme != nil {
-			e.onTheme()
 		}
 		return
 	}
@@ -514,21 +489,11 @@ func newLocalizer() *i18n.Localizer {
 	return i18n.NewLocalizer(bundle, lang.String())
 }
 
-func countKey(id string) string { return prefCountPrefix + id }
-func lastKey(id string) string  { return prefLastPrefix + id }
-
-func loadStats(p fyne.Preferences, browsers []browser) map[string]useStat {
-	m := make(map[string]useStat, len(browsers))
+func loadStats(browsers []browser) map[string]useStat {
+	s := loadState()
+	out := make(map[string]useStat, len(browsers))
 	for _, b := range browsers {
-		m[b.id] = useStat{
-			Count: p.IntWithFallback(countKey(b.id), 0),
-			Last:  int64(p.IntWithFallback(lastKey(b.id), 0)),
-		}
+		out[b.id] = s.Counts[b.id]
 	}
-	return m
-}
-
-func recordUse(p fyne.Preferences, id string) {
-	p.SetInt(countKey(id), p.IntWithFallback(countKey(id), 0)+1)
-	p.SetInt(lastKey(id), int(time.Now().Unix()))
+	return out
 }

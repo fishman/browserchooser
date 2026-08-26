@@ -27,7 +27,6 @@ files on Linux, app bundles on macOS, and standard install paths on Windows.
 | `Enter` | open the top match |
 | `Ctrl+C` | copy the link and quit |
 | `Esc` | quit |
-| `F2` | toggle dark/light theme |
 
 ## Usage
 
@@ -70,10 +69,13 @@ Optional `config.toml` in the user config dir
 
 | key | effect |
 |-----|--------|
+| `theme` | color scheme: `auto` (default) follows the system, `light` and `dark` force a variant |
 | `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
 | `chrome.profiles` | list every Google Chrome profile (from `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
 
 ```toml
+theme = "dark"
+
 [firefox]
 profiles = false
 
@@ -100,10 +102,36 @@ install -Dm644 dev.fishman.browserchooser.desktop \
 update-desktop-database ~/.local/share/applications
 ```
 
+## Why not an existing browser chooser?
+
+There are established link-picker tools; here is what pushed this one into
+existence and keeps it small.
+
+| tool | model | misses for us |
+|------|-------|---------------|
+| Browserosaurus / Browseratops | default-browser hook that pops a menu | Electron (Node + WebKit) runtime; macOS/Windows only, no Linux/Wayland |
+| `@browsers`-style launcher scripts | rofi shell/JS scripts that parse `profiles.ini` | pulled in a pile of deps; miss **modern** Firefox profile-group profiles, which live in `Profile Groups` sqlite DBs, not `profiles.ini`; rofi sits on X11, not Wayland |
+| linkquisition | Go browser chooser with routing rules | far larger codebase to audit for a one-purpose tool |
+
+browserchooser keeps three properties the above split across them:
+
+- **One static binary, no runtime stack.** Go + Fyne only; no Electron,
+  Node, WebKit, or script interpreter to ship or keep patched.
+- **Modern Firefox profiles work.** Real names are read from the `Profile
+  Groups` sqlite DBs (via the `sqlite3` CLI), not `profiles.ini`, so the
+  profiles that exist after Firefox 137 resolve to their actual names.
+- **Cross-platform and Wayland-native.** Fyne draws directly on Wayland (and
+  X11), and the same binary runs on Linux, macOS, and Windows. The dedicated
+  pickers above are each locked to one OS.
+
+The codebase stays small enough to read end to end, which matters for a tool
+that sits at the default-browser boundary.
+
 ## Theme
 
-Nord palette. Follows the system dark/light theme by default; `F2` toggles and
-the override persists.
+Nord palette. The scheme is set in `config.toml`: `theme = "auto"` (default)
+follows the system's dark/light, while `theme = "light"` or `theme = "dark"`
+forces a variant.
 
 ## License
 
