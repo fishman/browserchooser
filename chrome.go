@@ -49,19 +49,27 @@ func exists(p string) bool {
 	return err == nil
 }
 
+// chromeProfiles returns one browser per profile for every Chromium-family
+// install found (Google Chrome and Chromium), so profiles that are not the
+// default are listable and routable.
 func chromeProfiles() []browser {
-	base := chromeBase()
-	data, err := os.ReadFile(filepath.Join(base, "Local State"))
-	if err != nil {
-		return nil
+	var list []browser
+	add := func(base, bin, brand, prefix, icon string) {
+		data, err := os.ReadFile(filepath.Join(base, "Local State"))
+		if err != nil {
+			return
+		}
+		list = append(list, parseChromeProfiles(data, base, bin, brand, prefix, icon)...)
 	}
-	return parseChromeProfiles(data, base, chromeBin())
+	add(chromeBase(), chromeBin(), "Chrome", "chrome-", "google-chrome")
+	add(chromiumBase(), chromiumBin(), "Chromium", "chromium-", "chromium")
+	return list
 }
 
-// parseChromeProfiles turns a Chrome "Local State" JSON into one browser per
-// profile, launched with --profile-directory=<dir>. Profile names come from the
-// info_cache map; dirs that are not present on disk are skipped.
-func parseChromeProfiles(data []byte, base, bin string) []browser {
+// parseChromeProfiles turns a Chromium-family "Local State" JSON into one
+// browser per profile, launched with --profile-directory=<dir>. Profile names
+// come from the info_cache map; dirs that are not present on disk are skipped.
+func parseChromeProfiles(data []byte, base, bin, brand, prefix, icon string) []browser {
 	var ls struct {
 		Profile struct {
 			InfoCache map[string]struct {
@@ -82,8 +90,36 @@ func parseChromeProfiles(data []byte, base, bin string) []browser {
 		if !dirExists(base, dir) {
 			continue
 		}
-		list = append(list, profileBrowser("Chrome", "chrome-", "google-chrome",
+		list = append(list, profileBrowser(brand, prefix, icon,
 			dir, ls.Profile.InfoCache[dir].Name, []string{bin, "--profile-directory=" + dir}))
 	}
 	return list
+}
+
+func chromiumBase() string {
+	home, _ := os.UserHomeDir()
+	switch runtime.GOOS {
+	case "darwin":
+		return filepath.Join(home, "Library", "Application Support", "Chromium")
+	case "windows":
+		if app := os.Getenv("LOCALAPPDATA"); app != "" {
+			return filepath.Join(app, "Chromium", "User Data")
+		}
+	}
+	return filepath.Join(home, ".config", "chromium")
+}
+
+func chromiumBin() string {
+	switch runtime.GOOS {
+	case "darwin":
+		return "/Applications/Chromium.app/Contents/MacOS/Chromium"
+	case "windows":
+		return "chromium"
+	}
+	for _, name := range []string{"chromium", "chromium-browser"} {
+		if p, err := exec.LookPath(name); err == nil {
+			return p
+		}
+	}
+	return "chromium"
 }

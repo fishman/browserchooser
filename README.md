@@ -106,6 +106,7 @@ browser = "google-chrome"
 | standalone binary | executable basename | `firefox`, `google-chrome` |
 | Firefox profile (classic or modern) | `firefox-<name>` | `firefox-work`, `firefox-profile-4` |
 | Chrome profile | `chrome-<dir>` | `chrome-default`, `chrome-profile-1` |
+| Chromium profile | `chromium-<dir>` | `chromium-default`, `chromium-profile-1` |
 
 Modern Firefox ids come from the real profile name stored in the `Profile
 Groups` sqlite DBs; classic and Chrome ids use the sanitized profile/directory
@@ -120,7 +121,7 @@ Optional `config.toml` in the user config dir
 |-----|--------|
 | `theme` | color scheme: `auto` (default) follows the system, `light` and `dark` force a variant |
 | `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
-| `chrome.profiles` | list every Google Chrome profile (from `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
+| `chrome.profiles` | list every Chromium-family profile (Google Chrome and Chromium, from each `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
 | `rules` | an array of `expr` + `browser` pairs routing URLs; see Rules |
 
 ```toml
