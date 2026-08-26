@@ -88,6 +88,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	w.SetTitle(u.l("title"))
 
 	u.entry = &numEntry{}
+	u.entry.Scroll = fyne.ScrollNone // clip text, no scrollbars
 	u.entry.SetPlaceHolder(u.l("placeholder"))
 	u.entry.OnChanged = func(string) { u.refresh() }
 	u.entry.OnSubmitted = func(string) {
