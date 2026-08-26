@@ -1,6 +1,6 @@
 module github.com/fishman/browserchooser
 
-go 1.26.5
+go 1.26.6
 
 require (
 	fyne.io/fyne/v2 v2.8.1-rc3
@@ -10,7 +10,7 @@ require (
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
 	github.com/rkoesters/xdg v0.0.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	golang.org/x/text v0.32.0
+	golang.org/x/text v0.38.0
 	howett.net/plist v1.0.1
 )
 
@@ -42,8 +42,8 @@ require (
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
 	github.com/stretchr/testify v1.11.1 // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect
-	golang.org/x/image v0.24.0 // indirect
-	golang.org/x/net v0.35.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/image v0.43.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
