@@ -2,5 +2,9 @@
   "title": "Browser Chooser",
   "placeholder": "Type to filter, 1-4 open, 5 copies, Enter opens top",
   "copyLink": "Copy link to clipboard",
-  "showQR": "Show QR code"
+  "showQR": "Show QR code",
+  "hostPrompt": "Open %s with %s?",
+  "hostHint": "Enter to open, Esc to choose",
+  "hostOpen": "Open",
+  "hostChoose": "Choose..."
 }

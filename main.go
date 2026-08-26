@@ -58,7 +58,7 @@ func main() {
 			if err := b.open(url); err != nil {
 				log.Printf("browserchooser: open %s: %v", b.name, err)
 			} else {
-				recordUse(b.id)
+				recordOpen(url, b.id)
 			}
 			return
 		}
@@ -67,7 +67,20 @@ func main() {
 	w := a.NewWindow(winTitle)
 	u := newUI(a, w, url)
 	u.applyTheme()
-	w.SetContent(u.content())
+	if url != "" {
+		if h := hostOf(url); h != "" {
+			if id := dominantHostID(loadState().Hosts[h]); id != "" {
+				if b := findBrowser(u.browsers, id); b != nil {
+					u.promptHost, u.promptBrowser = h, b
+				}
+			}
+		}
+	}
+	if u.promptBrowser != nil {
+		w.SetContent(u.promptContent())
+	} else {
+		w.SetContent(u.content())
+	}
 	w.Resize(fyne.NewSize(winW, winH))
 	w.CenterOnScreen()
 	u.refresh()
@@ -76,18 +89,20 @@ func main() {
 }
 
 type appUI struct {
-	a        fyne.App
-	w        fyne.Window
-	url      string
-	browsers []browser
-	stats    map[string]useStat
-	entry    *numEntry
-	list     *widget.List
-	rows     []row
-	loc      *i18n.Localizer
-	dark     bool
-	showQR   bool
-	selTimer *time.Timer
+	a             fyne.App
+	w             fyne.Window
+	url           string
+	browsers      []browser
+	stats         map[string]useStat
+	entry         *numEntry
+	list          *widget.List
+	rows          []row
+	loc           *i18n.Localizer
+	dark          bool
+	showQR        bool
+	selTimer      *time.Timer
+	promptHost    string
+	promptBrowser *browser
 }
 
 func newUI(a fyne.App, w fyne.Window, url string) *appUI {
@@ -402,7 +417,32 @@ func (u *appUI) launch(b *browser) {
 		log.Printf("browserchooser: open %s: %v", b.name, err)
 		return
 	}
-	recordUse(b.id)
+	recordOpen(u.url, b.id)
+}
+
+// promptContent returns the remembered-browser confirmation view. The prompt
+// is the window content (not an overlay) so Enter and Esc reach it instead of
+// the picker's entry.
+func (u *appUI) promptContent() fyne.CanvasObject {
+	p := newPromptView(u, u.promptHost, u.promptBrowser)
+	time.AfterFunc(0, func() {
+		fyne.Do(func() { u.w.Canvas().Focus(p) })
+	})
+	return container.NewCenter(p)
+}
+
+// promptOpen opens the remembered browser. Confirming reinforces the
+// preference; declining (promptDecline) falls through to the picker, and a
+// different choice there updates the host counts as usual.
+func (u *appUI) promptOpen() {
+	u.launch(u.promptBrowser)
+	u.a.Quit()
+}
+
+func (u *appUI) promptDecline() {
+	u.w.SetContent(u.content())
+	u.refresh()
+	u.focusEntry()
 }
 
 func (u *appUI) l(id string) string {

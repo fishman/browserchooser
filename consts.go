@@ -18,12 +18,19 @@ const (
 	msgPlaceholder = "placeholder"
 	msgCopyLink    = "copyLink"
 	msgShowQR      = "showQR"
+	msgHostPrompt  = "hostPrompt"
+	msgHostHint    = "hostHint"
+	msgHostOpen    = "hostOpen"
+	msgHostChoose  = "hostChoose"
 
 	// selection highlight debounce so rapid keystrokes don't jump the cursor
 	selDebounce = 20 * time.Millisecond
 
 	// frecency decay half life for recency-weighted ranking
 	frecencyHalfLife = 30 * 24 * time.Hour
+
+	// minimum host opens before a per-host browser preference is trusted
+	minHostUses = 3
 )
 
 const (

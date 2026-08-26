@@ -46,6 +46,41 @@ func TestFrecency(t *testing.T) {
 	}
 }
 
+func TestHostOf(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"https://github.com/foo", "github.com"},
+		{"github.com", "github.com"},
+		{"http://example.com:8080/x", "example.com"},
+		{"https://www.github.com", "github.com"},
+		{"www.example.com", "example.com"},
+		{"", ""},
+		{"not a url", ""},
+	}
+	for _, c := range cases {
+		if got := hostOf(c.in); got != c.want {
+			t.Errorf("hostOf(%q) = %q want %q", c.in, got, c.want)
+		}
+	}
+}
+
+func TestDominantHostID(t *testing.T) {
+	if got := dominantHostID(map[string]useStat{"firefox": {Count: 2}}); got != "" {
+		t.Errorf("2 opens below min threshold, want none, got %q", got)
+	}
+	if got := dominantHostID(map[string]useStat{"firefox": {Count: 3}}); got != "firefox" {
+		t.Errorf("3 opens one browser, want firefox, got %q", got)
+	}
+	if got := dominantHostID(map[string]useStat{"firefox": {Count: 2}, "chrome": {Count: 1}}); got != "firefox" {
+		t.Errorf("2/3 majority, want firefox, got %q", got)
+	}
+	if got := dominantHostID(map[string]useStat{"firefox": {Count: 2}, "chrome": {Count: 2}}); got != "" {
+		t.Errorf("split 2/2 not dominant, want none, got %q", got)
+	}
+	if got := dominantHostID(nil); got != "" {
+		t.Errorf("empty counts, want none, got %q", got)
+	}
+}
+
 func TestExpandURL(t *testing.T) {
 	cases := []struct {
 		argv []string

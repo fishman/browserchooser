@@ -70,6 +70,15 @@ func detectBrowsers() []browser {
 	return list
 }
 
+func findBrowser(list []browser, id string) *browser {
+	for i := range list {
+		if list[i].id == id {
+			return &list[i]
+		}
+	}
+	return nil
+}
+
 func fallbackBrowser() browser {
 	switch runtime.GOOS {
 	case "windows":

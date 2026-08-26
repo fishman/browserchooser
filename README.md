@@ -18,7 +18,9 @@ browserchooser stays deliberately small:
   rules written as short, declarative expressions.
 - **Frecency without a dialog.** Match ordering is derived from how often and
   how recently each browser was used - no configuration dialog, no preference
-  pane.
+  pane. Sites you consistently open in one browser are remembered per host:
+  after a few opens, opening that site prompts to reuse the same browser
+  (Enter) instead of the full picker.
 - **No complex behaviour.** No daemon, no background state beyond a usage
   counter, no plugins.
 
