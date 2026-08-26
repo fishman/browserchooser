@@ -96,3 +96,16 @@ func TestChromeFamilyFromConfig(t *testing.T) {
 		t.Error("mac_binary should be kept")
 	}
 }
+
+func TestBinaryCandidates(t *testing.T) {
+	got := binaryCandidates("Brave", "BraveSoftware/Brave-Browser")
+	want := []string{"brave", "brave-browser", "brave-stable"}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("candidate %d = %q, want %q (all: %v)", i, got[i], w, got)
+		}
+	}
+	if len(got) < 3 {
+		t.Fatalf("want at least 3 candidates, got %v", got)
+	}
+}

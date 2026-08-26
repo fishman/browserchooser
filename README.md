@@ -142,15 +142,17 @@ browser = "firefox"
 **Adding another Chromium browser** (`[[chrome.browsers]]`): list a Chromium
 fork's profiles without changing code. `data_dir` is the relative path under
 `~/.config` (Linux), `~/Library/Application Support` (macOS), and
-`%LOCALAPPDATA%` (Windows); `binary` is the launcher command. Profiles get the
-id `chromium-`-style `browsername-<dir>` (here `brave-default`), so rules can
+`%LOCALAPPDATA%` (Windows). `binary` is optional: launcher names are derived
+from `name` and the data dir and probed on `PATH` (macOS uses `mac_binary`, or
+derives the `/Applications/<name>.app` path). Profiles get the id
+`chromium-`-style `browsername-<dir>` (here `brave-default`), so rules can
 route to them:
 
 ```toml
 [[chrome.browsers]]
 name = "Brave"
 data_dir = "BraveSoftware/Brave-Browser"
-binary = "brave-browser"
+# binary = "brave-browser"   # optional; auto-detected from the name
 # mac_binary = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 

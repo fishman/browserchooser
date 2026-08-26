@@ -42,7 +42,7 @@ func chromeFamilies() []chromeFamily {
 		},
 	}
 	for _, c := range loadSettings().Chrome.Browsers {
-		if c.Name != "" && c.DataDir != "" && c.Binary != "" {
+		if c.Name != "" && c.DataDir != "" {
 			fams = append(fams, chromeFamilyFromConfig(c))
 		}
 	}
@@ -51,16 +51,48 @@ func chromeFamilies() []chromeFamily {
 
 // chromeFamilyFromConfig maps a config entry to a family: the id prefix and
 // icon derive from the name, and the single data_dir applies on every platform.
+// An explicit binary is honored; otherwise launcher names are derived.
 func chromeFamilyFromConfig(c chromeBrowserConfig) chromeFamily {
 	id := sanitizeID(c.Name)
+	bins := binaryCandidates(c.Name, c.DataDir)
+	if c.Binary != "" {
+		bins = []string{c.Binary}
+	}
+	winExe := c.Binary
+	if winExe == "" {
+		winExe = bins[0]
+	}
 	return chromeFamily{
 		brand: c.Name, prefix: id + "-", icon: id,
 		linuxDir: c.DataDir, macDir: c.DataDir, winDir: c.DataDir,
-		linuxBins: []string{c.Binary},
+		linuxBins: bins,
 		macApp:    c.Name,
 		macBin:    c.MacBin,
-		winExe:    c.Binary,
+		winExe:    winExe,
 	}
+}
+
+// binaryCandidates lists likely launcher commands for a Chromium fork, derived
+// from its display name and data-dir basename, so the binary need not be
+// configured. Linux finds one via LookPath; the list is never empty when the
+// name is set.
+func binaryCandidates(name, dataDir string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(s string) {
+		if s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	base := sanitizeID(name)
+	dir := sanitizeID(filepath.Base(dataDir))
+	add(base)
+	add(base + "-browser")
+	add(base + "-stable")
+	add(dir)
+	add(dir + "-stable")
+	return out
 }
 
 // familyBase is the "User Data" dir holding Local State and one subdir per
