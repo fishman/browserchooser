@@ -153,6 +153,14 @@ install -Dm644 dev.fishman.browserchooser.desktop \
 update-desktop-database ~/.local/share/applications
 ```
 
+## Packages
+
+- Arch Linux (AUR):
+  [`browserchooser`](https://aur.archlinux.org/packages/browserchooser)
+  (Wayland) and
+  [`browserchooser-x11`](https://aur.archlinux.org/packages/browserchooser-x11)
+- Homebrew: `brew install fishman/browserchooser/browserchooser`
+
 ## Why not an existing browser chooser?
 
 Existing link-picker tools, and the differences that matter:
