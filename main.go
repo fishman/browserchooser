@@ -71,7 +71,7 @@ func main() {
 	w.Resize(fyne.NewSize(winW, winH))
 	w.CenterOnScreen()
 	u.refresh()
-	w.Canvas().Focus(u.entry)
+	u.focusEntry()
 	w.ShowAndRun()
 }
 
@@ -176,7 +176,7 @@ func (u *appUI) content() fyne.CanvasObject {
 func (u *appUI) toggleQR() {
 	u.showQR = !u.showQR
 	u.w.SetContent(u.content())
-	u.w.Canvas().Focus(u.entry)
+	u.focusEntry()
 }
 
 func (u *appUI) qr() fyne.CanvasObject {
@@ -367,6 +367,15 @@ func (u *appUI) activate(i int) {
 // applyTheme resolves the effective variant: a stored override (F2) wins,
 // otherwise the system's dark/light from ThemeVariant. u.dark mirrors it so
 // the chip and QR colors follow the same source.
+// focusEntry returns keyboard focus to the entry on the next event-loop tick.
+// Calling Canvas().Focus immediately after SetContent is dropped because the
+// new widget is not yet attached; deferring keeps Esc and the hotkeys alive.
+func (u *appUI) focusEntry() {
+	time.AfterFunc(0, func() {
+		fyne.Do(func() { u.w.Canvas().Focus(u.entry) })
+	})
+}
+
 func (u *appUI) applyTheme() {
 	v := theme.VariantDark
 	switch u.a.Preferences().IntWithFallback(prefTheme, -1) {
@@ -395,7 +404,7 @@ func (u *appUI) toggleTheme() {
 	}
 	u.applyTheme()
 	u.w.SetContent(u.content())
-	u.w.Canvas().Focus(u.entry)
+	u.focusEntry()
 }
 
 func (u *appUI) copyAndQuit() {
