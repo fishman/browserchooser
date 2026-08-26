@@ -55,6 +55,27 @@ jobs:
             echo "missing AUR_SSH_KEY/AUR_GIT_EMAIL secrets, skipping push"
             exit 0
           fi
+
+          # Regenerate any package dir the docker step did not leave on the
+          # runner, so a missing generated dir cannot abort the push. PKGBUILD
+          # is pure sed; .SRCINFO needs Arch makepkg, so do that in a container
+          # only when it is missing.
+          regen() {
+            name=$1; src=$2
+            tpl="packaging/$name/PKGBUILD"
+            [ -f "$tpl" ] || { echo "missing $tpl" >&2; exit 1; }
+            rm -rf "$src" && mkdir -p "$src"
+            sed "s/@PKGVER@/$VERSION/; s/@PKGEMAIL@/$AUR_GIT_EMAIL/" "$tpl" > "$src/PKGBUILD"
+            docker run --rm -v "$PWD:/build" archlinux/archlinux:base-devel bash -c "
+              cd /build/$src
+              useradd -m builder
+              chown -R builder /build/$src
+              runuser -u builder --preserve-environment -- makepkg --printsrcinfo > .SRCINFO
+            "
+          }
+          [ -f .build-aur/PKGBUILD ]      || regen browserchooser .build-aur
+          [ -f .build-aur-x11/PKGBUILD ]  || regen browserchooser-x11 .build-aur-x11
+
           mkdir -p "$HOME/.ssh"
           printf '%s\n' "$AUR_SSH_KEY" > "$HOME/.ssh/aur"
           chmod 600 "$HOME/.ssh/aur"
@@ -72,4 +93,5 @@ jobs:
             git add PKGBUILD .SRCINFO
             git commit -m "$name $VERSION"
             git push
+            cd - >/dev/null
           done
