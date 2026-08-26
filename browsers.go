@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"fyne.io/fyne/v2"
+
 	"github.com/expr-lang/expr"
 	"github.com/jeandeaual/go-locale"
 	"github.com/rkoesters/xdg/desktop"
@@ -23,6 +25,7 @@ type browser struct {
 	id   string
 	name string
 	argv []string
+	icon fyne.Resource
 }
 
 func (b *browser) open(url string) error {
@@ -46,7 +49,6 @@ type rule struct {
 type row struct {
 	label string
 	b     *browser
-	copy  bool
 }
 
 func detectBrowsers() []browser {
@@ -118,7 +120,7 @@ func detectLinux() []browser {
 				continue
 			}
 			seen[id] = true
-			list = append(list, browser{id: id, name: e.Name, argv: argv})
+			list = append(list, browser{id: id, name: e.Name, argv: argv, icon: iconResource(e.Icon)})
 		}
 	}
 	return list
@@ -154,6 +156,7 @@ func detectDarwin() []browser {
 			continue
 		}
 		b := browser{id: id, name: name, argv: []string{"open", "-a", name}}
+		b.icon = appIconResource(filepath.Join(path, "Contents", "Resources", "AppIcon.icns"))
 		if info, err := readInfoPlist(path); err == nil {
 			if info.BundleID != "" {
 				b.argv = []string{"open", "-b", info.BundleID}
@@ -353,9 +356,9 @@ func frecencyScore(count int, last int64) float64 {
 	return float64(count+1) * math.Pow(0.5, float64(age)/float64(frecencyHalfLife))
 }
 
-// rankRows returns at most 4 matching browsers ordered by fuzzy then frecency,
-// plus the copy-link row when a url is present.
-func rankRows(browsers []browser, stats map[string]useStat, query, url, copyLabel string) []row {
+// rankRows returns at most 4 matching browsers ordered by fuzzy then frecency.
+// The copy-link row is not part of the match set; the UI pins it at key 5.
+func rankRows(browsers []browser, stats map[string]useStat, query string) []row {
 	type scored struct {
 		b browser
 		s float64
@@ -375,16 +378,13 @@ func rankRows(browsers []browser, stats map[string]useStat, query, url, copyLabe
 		}
 		return sc[i].b.name < sc[j].b.name
 	})
-	rows := make([]row, 0, 5)
+	rows := make([]row, 0, 4)
 	for i, x := range sc {
 		if i >= 4 {
 			break
 		}
 		b := x.b
 		rows = append(rows, row{label: b.name, b: &b})
-	}
-	if url != "" {
-		rows = append(rows, row{label: copyLabel, copy: true})
 	}
 	return rows
 }

@@ -65,6 +65,9 @@ github.com/anthonynsimon/bild/blur
 github.com/anthonynsimon/bild/clone
 github.com/anthonynsimon/bild/convolution
 github.com/anthonynsimon/bild/parallel
+# github.com/atotto/clipboard v0.1.4
+## explicit
+github.com/atotto/clipboard
 # github.com/clipperhouse/uax29/v2 v2.2.0
 ## explicit; go 1.18
 github.com/clipperhouse/uax29/v2/graphemes

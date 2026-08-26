@@ -97,24 +97,19 @@ func TestRankRows(t *testing.T) {
 		"c": {Count: 20},
 		"b": {Count: 5},
 	}
-	rows := rankRows(browsers, stats, "", "https://x", "copy")
-	if len(rows) != 5 {
-		t.Fatalf("want 5 rows (4 browsers + copy), got %d", len(rows))
+	rows := rankRows(browsers, stats, "")
+	if len(rows) != 4 {
+		t.Fatalf("want 4 browsers, got %d", len(rows))
 	}
 	if rows[0].label != "Charlie" {
 		t.Errorf("frecency leader should rank first, got %q", rows[0].label)
 	}
-	last := rows[len(rows)-1]
-	if !last.copy || last.label != "copy" {
-		t.Errorf("copy row should be last, got %+v", last)
+	filtered := rankRows(browsers, stats, "al")
+	if len(filtered) != 2 {
+		t.Fatalf("'al' should match Alpha and Delta, got %d rows", len(filtered))
 	}
-	filtered := rankRows(browsers, stats, "al", "https://x", "copy")
-	if len(filtered) != 3 {
-		t.Fatalf("'al' should match Alpha and Delta plus copy, got %d rows", len(filtered))
-	}
-	nocopy := rankRows(browsers, stats, "", "", "copy")
-	if len(nocopy) != 4 {
-		t.Fatalf("no url should skip copy row, got %d rows", len(nocopy))
+	if filtered[0].label != "Alpha" {
+		t.Errorf("fuzzy match should rank Alpha first, got %q", filtered[0].label)
 	}
 }
 

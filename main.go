@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/atotto/clipboard"
 	"github.com/jeandeaual/go-locale"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/skip2/go-qrcode"
@@ -49,6 +50,7 @@ func main() {
 
 	w := a.NewWindow("Browser Chooser")
 	u := newUI(a, w, url)
+	u.applyTheme()
 	w.SetContent(u.content())
 	w.Resize(fyne.NewSize(520, 400))
 	u.refresh()
@@ -66,12 +68,14 @@ type appUI struct {
 	list     *widget.List
 	rows     []row
 	loc      *i18n.Localizer
+	dark     bool
 }
 
 func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	u := &appUI{
 		a: a, w: w, url: url, loc: newLocalizer(),
 		browsers: detectBrowsers(),
+		dark:     a.Preferences().BoolWithFallback("dark", true),
 	}
 	if len(u.browsers) == 0 {
 		u.browsers = []browser{fallbackBrowser()}
@@ -85,20 +89,37 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	u.entry.OnSubmitted = func(string) {
 		if len(u.rows) > 0 {
 			u.activate(0)
+		} else if u.copyVisible() {
+			u.activate(u.copyIndex())
 		}
 	}
-	u.entry.onSelect = u.activate
-	u.entry.onEsc = func() { u.a.Quit() }
-	u.entry.onCtrlC = func() {
-		u.a.Clipboard().SetContent(u.url)
-		u.a.Quit()
+	u.entry.onSelect = func(i int) {
+		if i == 4 {
+			if u.url != "" {
+				u.copyAndQuit()
+			}
+			return
+		}
+		u.activate(i)
 	}
+	u.entry.onEsc = func() { u.a.Quit() }
+	u.entry.onTheme = u.toggleTheme
+	u.entry.onCtrlC = func() { u.copyAndQuit() }
 
 	u.list = widget.NewList(
-		func() int { return len(u.rows) },
-		func() fyne.CanvasObject { return widget.NewLabel("") },
+		func() int { return u.listLen() },
+		func() fyne.CanvasObject {
+			icon := canvas.NewImageFromResource(nil)
+			icon.FillMode = canvas.ImageFillContain
+			icon.SetMinSize(fyne.NewSize(28, 28))
+			return container.NewHBox(icon, widget.NewLabel(""))
+		},
 		func(id widget.ListItemID, o fyne.CanvasObject) {
-			o.(*widget.Label).SetText(u.rowLabel(int(id)))
+			box := o.(*fyne.Container)
+			img := box.Objects[0].(*canvas.Image)
+			img.Resource = u.rowIcon(int(id))
+			img.Hidden = img.Resource == nil
+			box.Objects[1].(*widget.Label).SetText(u.rowLabel(int(id)))
 		},
 	)
 	u.list.OnSelected = func(id widget.ListItemID) {
@@ -129,10 +150,17 @@ func (u *appUI) qr() fyne.CanvasObject {
 }
 
 func (u *appUI) rowLabel(i int) string {
-	if u.rows[i].copy {
-		return u.rows[i].label
+	if u.copyVisible() && i == u.copyIndex() {
+		return numberLabel(4) + " " + u.l("copyLink")
 	}
 	return numberLabel(i) + " " + u.rows[i].label
+}
+
+func (u *appUI) rowIcon(i int) fyne.Resource {
+	if u.copyVisible() && i == u.copyIndex() {
+		return nil
+	}
+	return u.rows[i].b.icon
 }
 
 func numberLabel(i int) string {
@@ -140,7 +168,7 @@ func numberLabel(i int) string {
 }
 
 func (u *appUI) refresh() {
-	u.rows = rankRows(u.browsers, u.stats, u.entry.Text, u.url, u.l("copyLink"))
+	u.rows = rankRows(u.browsers, u.stats, u.entry.Text)
 	if len(u.rows) > 0 {
 		u.list.Highlight(0)
 	} else {
@@ -148,17 +176,46 @@ func (u *appUI) refresh() {
 	}
 }
 
+func (u *appUI) copyVisible() bool {
+	return u.url != "" && u.entry.Text == ""
+}
+
+func (u *appUI) copyIndex() int { return len(u.rows) }
+
+func (u *appUI) listLen() int {
+	if u.copyVisible() {
+		return len(u.rows) + 1
+	}
+	return len(u.rows)
+}
+
 func (u *appUI) activate(i int) {
+	if i == u.copyIndex() && u.copyVisible() {
+		u.copyAndQuit()
+		return
+	}
 	if i < 0 || i >= len(u.rows) {
 		return
 	}
-	r := u.rows[i]
-	if r.copy {
-		u.a.Clipboard().SetContent(u.url)
-		u.a.Quit()
+	u.launch(u.rows[i].b)
+	u.a.Quit()
+}
+
+func (u *appUI) applyTheme() {
+	u.a.Settings().SetTheme(&nordTheme{dark: u.dark})
+}
+
+func (u *appUI) toggleTheme() {
+	u.dark = !u.dark
+	u.a.Preferences().SetBool("dark", u.dark)
+	u.applyTheme()
+}
+
+func (u *appUI) copyAndQuit() {
+	if err := clipboard.WriteAll(u.url); err != nil {
+		log.Printf("browserchooser: clipboard: %v", err)
 		return
 	}
-	u.launch(r.b)
 	u.a.Quit()
 }
 
@@ -189,6 +246,7 @@ type numEntry struct {
 	onSelect func(int)
 	onEsc    func()
 	onCtrlC  func()
+	onTheme  func()
 }
 
 func (e *numEntry) TypedRune(r rune) {
@@ -205,6 +263,12 @@ func (e *numEntry) TypedKey(key *fyne.KeyEvent) {
 	if key.Name == fyne.KeyEscape {
 		if e.onEsc != nil {
 			e.onEsc()
+		}
+		return
+	}
+	if key.Name == fyne.KeyF2 {
+		if e.onTheme != nil {
+			e.onTheme()
 		}
 		return
 	}

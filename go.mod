@@ -4,6 +4,7 @@ go 1.26.5
 
 require (
 	fyne.io/fyne/v2 v2.8.1-rc3
+	github.com/atotto/clipboard v0.1.4
 	github.com/expr-lang/expr v1.17.8
 	github.com/jeandeaual/go-locale v0.0.0-20250612000132-0ef82f21eade
 	github.com/nicksnyder/go-i18n/v2 v2.6.1
