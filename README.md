@@ -4,6 +4,9 @@ A small rofi-style browser selector for Linux, macOS, and Windows. Point it at
 a URL and pick which browser opens it, or copy the link to the clipboard and
 share it. Built with [Fyne](https://fyne.io) in Go.
 
+<img width="664" height="596" alt="image" src="https://github.com/user-attachments/assets/94403826-a349-4505-8ed3-9bae18ccf331" />
+
+
 ## Design principles
 
 browserchooser stays deliberately small:
