@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"embed"
 	"encoding/json"
+	"image/color"
 	"log"
 	"os"
 	"time"
@@ -52,7 +53,8 @@ func main() {
 	u := newUI(a, w, url)
 	u.applyTheme()
 	w.SetContent(u.content())
-	w.Resize(fyne.NewSize(520, 400))
+	w.Resize(fyne.NewSize(winW, winH))
+	w.CenterOnScreen()
 	u.refresh()
 	w.Canvas().Focus(u.entry)
 	w.ShowAndRun()
@@ -69,6 +71,8 @@ type appUI struct {
 	rows     []row
 	loc      *i18n.Localizer
 	dark     bool
+	showQR   bool
+	selTimer *time.Timer
 }
 
 func newUI(a fyne.App, w fyne.Window, url string) *appUI {
@@ -111,15 +115,19 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 		func() fyne.CanvasObject {
 			icon := canvas.NewImageFromResource(nil)
 			icon.FillMode = canvas.ImageFillContain
-			icon.SetMinSize(fyne.NewSize(28, 28))
-			return container.NewHBox(icon, widget.NewLabel(""))
+			icon.SetMinSize(fyne.NewSize(24, 24))
+			return container.NewBorder(nil, nil, container.NewPadded(icon), u.newChip(), widget.NewLabel(""))
 		},
 		func(id widget.ListItemID, o fyne.CanvasObject) {
-			box := o.(*fyne.Container)
-			img := box.Objects[0].(*canvas.Image)
-			img.Resource = u.rowIcon(int(id))
+			i := int(id)
+			border := o.(*fyne.Container)
+			img := border.Objects[1].(*fyne.Container).Objects[0].(*canvas.Image)
+			img.Resource = u.rowIcon(i)
 			img.Hidden = img.Resource == nil
-			box.Objects[1].(*widget.Label).SetText(u.rowLabel(int(id)))
+			border.Objects[0].(*widget.Label).SetText(u.rowLabel(i))
+			chip := border.Objects[2].(*fyne.Container)
+			chip.Hidden = false
+			u.updateChip(chip, u.chipNumber(i))
 		},
 	)
 	u.list.OnSelected = func(id widget.ListItemID) {
@@ -129,14 +137,38 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	return u
 }
 
+// Fixed 7-slot window: slot 1 is the input bar, slots 2-6 hold up to 5 rows
+// (4 browsers + the copy row), slot 7 is a short Show QR bar.
+const (
+	winW = 260
+	rowH = 44
+	qrH  = 30
+	winH = 44 + 5*rowH + qrH // input + 5 rows + qr
+)
+
 func (u *appUI) content() fyne.CanvasObject {
 	var bottom fyne.CanvasObject
 	if u.url != "" {
-		if qr := u.qr(); qr != nil {
-			bottom = container.NewVBox(qr)
+		btn := newQRButton(u.l("showQR"), u.toggleQR, u.dark)
+		bottom = btn
+		if u.showQR {
+			if qr := u.qr(); qr != nil {
+				bottom = container.NewVBox(qr, btn)
+			}
 		}
 	}
-	return container.NewBorder(u.entry, bottom, nil, nil, u.list)
+	bar := container.NewBorder(u.entry, bottom, nil, nil, u.list)
+	min := canvas.NewRectangle(color.Transparent)
+	min.SetMinSize(fyne.NewSize(winW, 0))
+	return container.NewStack(min, bar)
+}
+
+// toggleQR flips the QR overlay on and rebuilds the window so the code shows at
+// the bottom, above the always-sticky Show QR button.
+func (u *appUI) toggleQR() {
+	u.showQR = !u.showQR
+	u.w.SetContent(u.content())
+	u.w.Canvas().Focus(u.entry)
 }
 
 func (u *appUI) qr() fyne.CanvasObject {
@@ -149,11 +181,75 @@ func (u *appUI) qr() fyne.CanvasObject {
 	return img
 }
 
+// qrButton is a compact tappable bar (slot 7, ~2/3 of a browser row) that toggles
+// the QR overlay. It is drawn with canvas primitives so its height stays short,
+// unlike widget.Button which has a fixed minimum height.
+type qrButton struct {
+	widget.BaseWidget
+	text  string
+	onTap func()
+	dark  bool
+}
+
+func newQRButton(text string, onTap func(), dark bool) *qrButton {
+	b := &qrButton{text: text, onTap: onTap, dark: dark}
+	b.ExtendBaseWidget(b)
+	return b
+}
+
+func (b *qrButton) MinSize() fyne.Size { return fyne.NewSize(80, qrH) }
+
+func (b *qrButton) Tapped(_ *fyne.PointEvent) {
+	if b.onTap != nil {
+		b.onTap()
+	}
+}
+
+func (b *qrButton) TappedSecondary(_ *fyne.PointEvent) {}
+
+func (b *qrButton) CreateRenderer() fyne.WidgetRenderer {
+	bg := canvas.NewRectangle(color.Transparent)
+	bg.CornerRadius = 5
+	label := canvas.NewText(b.text, color.White)
+	label.Alignment = fyne.TextAlignCenter
+	label.TextSize = 12
+	r := &qrRenderer{b: b, bg: bg, label: label, obj: container.NewStack(bg, container.NewCenter(label))}
+	r.applyColors()
+	return r
+}
+
+type qrRenderer struct {
+	b     *qrButton
+	bg    *canvas.Rectangle
+	label *canvas.Text
+	obj   fyne.CanvasObject
+}
+
+func (r *qrRenderer) applyColors() {
+	if r.b.dark {
+		r.bg.FillColor = nordPolar3
+		r.bg.StrokeColor = nordPolar4
+		r.label.Color = nordSnow1
+	} else {
+		r.bg.FillColor = nordSnow1
+		r.bg.StrokeColor = nordSnow2
+		r.label.Color = nordPolar1
+	}
+}
+
+func (r *qrRenderer) Layout(s fyne.Size) { r.obj.Resize(s) }
+func (r *qrRenderer) MinSize() fyne.Size { return r.b.MinSize() }
+func (r *qrRenderer) Refresh()           { r.applyColors(); canvas.Refresh(r.obj) }
+func (r *qrRenderer) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{r.obj}
+}
+func (r *qrRenderer) Destroy() {}
+
 func (u *appUI) rowLabel(i int) string {
 	if u.copyVisible() && i == u.copyIndex() {
-		return numberLabel(4) + " " + u.l("copyLink")
+		return u.l("copyLink")
 	}
-	return numberLabel(i) + " " + u.rows[i].label
+	return u.rows[i].label
 }
 
 func (u *appUI) rowIcon(i int) fyne.Resource {
@@ -163,17 +259,77 @@ func (u *appUI) rowIcon(i int) fyne.Resource {
 	return u.rows[i].b.icon
 }
 
-func numberLabel(i int) string {
-	return string(rune('0'+i+1)) + "."
+// chipNumber is the hotkey badge pinned to the right of a row; the copy row is
+// always key 5, browsers are 1..4 by list position.
+func (u *appUI) chipNumber(i int) string {
+	if u.copyVisible() && i == u.copyIndex() {
+		return "5"
+	}
+	return string(rune('1' + i))
 }
 
+// newChip builds a rounded hotkey badge whose colors are refreshed on theme
+// toggle via updateChip.
+func (u *appUI) newChip() fyne.CanvasObject {
+	bg := canvas.NewRectangle(u.chipBg())
+	bg.CornerRadius = 5
+	bg.SetMinSize(fyne.NewSize(22, 22))
+	border := canvas.NewRectangle(color.Transparent)
+	border.CornerRadius = 5
+	border.StrokeWidth = 1
+	text := canvas.NewText("", u.chipText())
+	text.TextSize = 11
+	text.TextStyle.Monospace = true
+	return container.NewStack(bg, border, container.NewCenter(text))
+}
+
+func (u *appUI) updateChip(o fyne.CanvasObject, num string) {
+	s := o.(*fyne.Container)
+	s.Objects[0].(*canvas.Rectangle).FillColor = u.chipBg()
+	s.Objects[1].(*canvas.Rectangle).StrokeColor = u.chipBorder()
+	t := s.Objects[2].(*fyne.Container).Objects[0].(*canvas.Text)
+	t.Text = num
+	t.Color = u.chipText()
+	o.Refresh()
+}
+
+func (u *appUI) chipBg() color.Color {
+	if u.dark {
+		return nordPolar3
+	}
+	return nordSnow1
+}
+
+func (u *appUI) chipBorder() color.Color {
+	if u.dark {
+		return nordPolar4
+	}
+	return nordSnow2
+}
+
+func (u *appUI) chipText() color.Color {
+	if u.dark {
+		return nordSnow1
+	}
+	return nordPolar4
+}
+
+// refresh re-ranks rows and debounces the highlight so rapid keystrokes don't
+// make the selection jump; the window size stays fixed.
 func (u *appUI) refresh() {
 	u.rows = rankRows(u.browsers, u.stats, u.entry.Text)
-	if len(u.rows) > 0 {
-		u.list.Highlight(0)
-	} else {
-		u.list.Refresh()
+	if u.selTimer != nil {
+		u.selTimer.Stop()
 	}
+	u.selTimer = time.AfterFunc(20*time.Millisecond, func() {
+		fyne.Do(func() {
+			if len(u.rows) > 0 {
+				u.list.Highlight(0)
+			} else {
+				u.list.Refresh()
+			}
+		})
+	})
 }
 
 func (u *appUI) copyVisible() bool {
@@ -209,6 +365,8 @@ func (u *appUI) toggleTheme() {
 	u.dark = !u.dark
 	u.a.Preferences().SetBool("dark", u.dark)
 	u.applyTheme()
+	u.w.SetContent(u.content())
+	u.w.Canvas().Focus(u.entry)
 }
 
 func (u *appUI) copyAndQuit() {

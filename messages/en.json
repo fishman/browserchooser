@@ -1,5 +1,6 @@
 {
   "title": "Browser Chooser",
   "placeholder": "Type to filter, 1-4 open, 5 copies, Enter opens top",
-  "copyLink": "Copy link to clipboard"
+  "copyLink": "Copy link to clipboard",
+  "showQR": "Show QR code"
 }
