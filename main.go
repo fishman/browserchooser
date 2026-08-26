@@ -27,7 +27,7 @@ var messagesFS embed.FS
 
 func main() {
 	app.SetMetadata(fyne.AppMetadata{
-		ID:         "dev.fishman.browserchooser",
+		ID:         appID,
 		Migrations: map[string]bool{"fyneDo": true},
 	})
 
@@ -36,7 +36,7 @@ func main() {
 		url = os.Args[1]
 	}
 
-	a := app.NewWithID("dev.fishman.browserchooser")
+	a := app.NewWithID(appID)
 
 	if url != "" {
 		if b, ok := matchRule(url); ok {
@@ -79,17 +79,17 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	u := &appUI{
 		a: a, w: w, url: url, loc: newLocalizer(),
 		browsers: detectBrowsers(),
-		dark:     a.Preferences().BoolWithFallback("dark", true),
+		dark:     a.Preferences().BoolWithFallback(prefDark, true),
 	}
 	if len(u.browsers) == 0 {
 		u.browsers = []browser{fallbackBrowser()}
 	}
 	u.stats = loadStats(a.Preferences(), u.browsers)
-	w.SetTitle(u.l("title"))
+	w.SetTitle(u.l(msgTitle))
 
 	u.entry = &numEntry{}
 	u.entry.Scroll = fyne.ScrollNone // clip text, no scrollbars
-	u.entry.SetPlaceHolder(u.l("placeholder"))
+	u.entry.SetPlaceHolder(u.l(msgPlaceholder))
 	u.entry.OnChanged = func(string) { u.refresh() }
 	u.entry.OnSubmitted = func(string) {
 		if len(u.rows) > 0 {
@@ -125,6 +125,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 			img := border.Objects[1].(*fyne.Container).Objects[0].(*canvas.Image)
 			img.Resource = u.rowIcon(i)
 			img.Hidden = img.Resource == nil
+			img.Refresh() // re-raster from the new resource so the icon tracks its row
 			border.Objects[0].(*widget.Label).SetText(u.rowLabel(i))
 			chip := border.Objects[2].(*fyne.Container)
 			chip.Hidden = false
@@ -138,19 +139,10 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	return u
 }
 
-// Fixed 7-slot window: slot 1 is the input bar, slots 2-6 hold up to 5 rows
-// (4 browsers + the copy row), slot 7 is a short Show QR bar.
-const (
-	winW = 260
-	rowH = 44
-	qrH  = 30
-	winH = 44 + 5*rowH + qrH // input + 5 rows + qr
-)
-
 func (u *appUI) content() fyne.CanvasObject {
 	var bottom fyne.CanvasObject
 	if u.url != "" {
-		btn := newQRButton(u.l("showQR"), u.toggleQR, u.dark)
+		btn := newQRButton(u.l(msgShowQR), u.toggleQR, u.dark)
 		bottom = btn
 		if u.showQR {
 			if qr := u.qr(); qr != nil {
@@ -173,7 +165,7 @@ func (u *appUI) toggleQR() {
 }
 
 func (u *appUI) qr() fyne.CanvasObject {
-	png, err := qrcode.Encode(u.url, qrcode.Medium, 128)
+	png, err := qrcode.Encode(u.url, qrcode.Medium, qrSize)
 	if err != nil {
 		return nil
 	}
@@ -248,7 +240,7 @@ func (r *qrRenderer) Destroy() {}
 
 func (u *appUI) rowLabel(i int) string {
 	if u.copyVisible() && i == u.copyIndex() {
-		return u.l("copyLink")
+		return u.l(msgCopyLink)
 	}
 	return u.rows[i].label
 }
@@ -322,12 +314,11 @@ func (u *appUI) refresh() {
 	if u.selTimer != nil {
 		u.selTimer.Stop()
 	}
-	u.selTimer = time.AfterFunc(20*time.Millisecond, func() {
+	u.selTimer = time.AfterFunc(selDebounce, func() {
 		fyne.Do(func() {
+			u.list.Refresh() // re-render rows so icons/labels match the new sort
 			if len(u.rows) > 0 {
 				u.list.Highlight(0)
-			} else {
-				u.list.Refresh()
 			}
 		})
 	})
@@ -364,7 +355,7 @@ func (u *appUI) applyTheme() {
 
 func (u *appUI) toggleTheme() {
 	u.dark = !u.dark
-	u.a.Preferences().SetBool("dark", u.dark)
+	u.a.Preferences().SetBool(prefDark, u.dark)
 	u.applyTheme()
 	u.w.SetContent(u.content())
 	u.w.Canvas().Focus(u.entry)
@@ -459,8 +450,8 @@ func newLocalizer() *i18n.Localizer {
 	return i18n.NewLocalizer(bundle, lang.String())
 }
 
-func countKey(id string) string { return "count." + id }
-func lastKey(id string) string  { return "last." + id }
+func countKey(id string) string { return prefCountPrefix + id }
+func lastKey(id string) string  { return prefLastPrefix + id }
 
 func loadStats(p fyne.Preferences, browsers []browser) map[string]useStat {
 	m := make(map[string]useStat, len(browsers))

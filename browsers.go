@@ -344,8 +344,6 @@ func isWordBoundary(s string, i int) bool {
 	return c == ' ' || c == '-' || c == '_' || c == '.'
 }
 
-const frecencyHalfLife = 30 * 24 * time.Hour
-
 // frecencyScore mixes frequency and recency: count+1 so an unseen browser
 // still ranks above zero, decayed by a 30-day half life.
 func frecencyScore(count int, last int64) float64 {
@@ -378,9 +376,9 @@ func rankRows(browsers []browser, stats map[string]useStat, query string) []row 
 		}
 		return sc[i].b.name < sc[j].b.name
 	})
-	rows := make([]row, 0, 4)
+	rows := make([]row, 0, maxRows)
 	for i, x := range sc {
-		if i >= 4 {
+		if i >= maxRows {
 			break
 		}
 		b := x.b

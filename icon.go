@@ -29,9 +29,13 @@ func resourceFromFile(path string) fyne.Resource {
 	return fyne.NewStaticResource(filepath.Base(path), data)
 }
 
+// iconCache memoizes resolved theme icons so a full-tree fallback walk happens
+// at most once per name, not on every startup render.
+var iconCache = map[string]fyne.Resource{}
+
 // iconResource resolves a .desktop Icon value (a theme name or a path) to an
-// image resource. Theme names are looked up in hicolor and pixmaps, png first
-// then svg, at the common sizes.
+// image resource. Theme names hit the common pixmaps/hicolor spots directly;
+// only a miss falls back to walking the tree. Prefers png over svg over xpm.
 func iconResource(name string) fyne.Resource {
 	if name == "" {
 		return nil
@@ -39,24 +43,44 @@ func iconResource(name string) fyne.Resource {
 	if strings.HasPrefix(name, "/") {
 		return resourceFromFile(name)
 	}
+	if r, ok := iconCache[name]; ok {
+		return r
+	}
 	base := strings.TrimSuffix(name, filepath.Ext(name))
+	r := lookupIcon(base)
+	iconCache[name] = r
+	return r
+}
+
+// lookupIcon resolves base by stat-ing the common pixmaps and hicolor
+// size/scalable app dirs only. It never walks the icon tree: /usr/share/icons
+// on a real system can hold hundreds of thousands of files (2.6GB here), so a
+// recursive fallback is off the table -- a miss returns nil, no icon.
+func lookupIcon(base string) fyne.Resource {
 	for _, root := range iconRoots {
-		for _, size := range []string{"256", "128", "64", "48", "32"} {
-			for _, ext := range []string{"png", "svg"} {
-				p := filepath.Join(root, "hicolor", size+"x"+size, "apps", base+"."+ext)
-				if r := resourceFromFile(p); r != nil {
+		for _, dir := range iconDirs(root) {
+			for _, ext := range []string{"png", "svg", "xpm"} {
+				if r := resourceFromFile(filepath.Join(dir, base+"."+ext)); r != nil {
 					return r
 				}
 			}
 		}
-		for _, ext := range []string{"png", "svg"} {
-			p := filepath.Join(root, "pixmaps", base+"."+ext)
-			if r := resourceFromFile(p); r != nil {
-				return r
-			}
-		}
 	}
 	return nil
+}
+
+// iconDirs returns the common on-disk locations for a themed app icon, most
+// likely first. Extensions are tried per directory so png wins over svg.
+func iconDirs(root string) []string {
+	return []string{
+		filepath.Join(root, "icons", "hicolor", "scalable", "apps"),
+		filepath.Join(root, "icons", "hicolor", "128x128", "apps"),
+		filepath.Join(root, "icons", "hicolor", "64x64", "apps"),
+		filepath.Join(root, "icons", "hicolor", "48x48", "apps"),
+		filepath.Join(root, "icons", "hicolor", "32x32", "apps"),
+		filepath.Join(root, "icons", "hicolor", "256x256", "apps"),
+		filepath.Join(root, "pixmaps"),
+	}
 }
 
 // appIconResource returns the largest PNG embedded in an .icns file, used for

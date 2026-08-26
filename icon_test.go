@@ -34,11 +34,11 @@ func TestIconResourceName(t *testing.T) {
 	defer func() { iconRoots = old }()
 
 	dir := t.TempDir()
-	p := filepath.Join(dir, "hicolor", "64x64", "apps")
+	p := filepath.Join(dir, "icons", "hicolor", "scalable", "apps")
 	if err := os.MkdirAll(p, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(p, "firefox.png"), []byte("PNG"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(p, "firefox.svg"), []byte("<svg/>"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	iconRoots = []string{dir}
@@ -47,8 +47,8 @@ func TestIconResourceName(t *testing.T) {
 	if r == nil {
 		t.Fatal("iconResource should resolve the themed name")
 	}
-	if r.Name() != "firefox.png" {
-		t.Errorf("icon name = %q, want firefox.png", r.Name())
+	if r.Name() != "firefox.svg" {
+		t.Errorf("icon name = %q, want firefox.svg", r.Name())
 	}
 	if iconResource("missing") != nil {
 		t.Error("unknown icon name should resolve to nil")
