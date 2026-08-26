@@ -156,9 +156,7 @@ update-desktop-database ~/.local/share/applications
 ## Packages
 
 - Arch Linux (AUR):
-  [`browserchooser`](https://aur.archlinux.org/packages/browserchooser)
-  (Wayland) and
-  [`browserchooser-x11`](https://aur.archlinux.org/packages/browserchooser-x11)
+  `paru -S browserchooser` (Wayland) or `paru -S browserchooser-x11` (X11)
 - Homebrew: `brew install fishman/browserchooser/browserchooser`
 
 ## Why not an existing browser chooser?
