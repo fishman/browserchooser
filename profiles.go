@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -32,15 +33,60 @@ func firefoxBin() string {
 func firefoxProfiles() []browser {
 	base := firefoxBase()
 	fx := firefoxBin()
+	names := firefoxProfileNames(base) // empty when no group DBs are readable
+	if len(names) > 0 {
+		// Modern profile groups exist: list every real profile dir and use the
+		// real name from the DB. This is the single source, not merged with
+		// profiles.ini.
+		list := firefoxDirProfiles(base, fx, map[string]bool{})
+		for i := range list {
+			if n, ok := names[filepath.Base(list[i].argv[len(list[i].argv)-1])]; ok && n != "" {
+				list[i].name = "Firefox - " + n
+			}
+		}
+		return list
+	}
+	// No modern groups: fall back to the classic profiles.ini.
 	var list []browser
 	if data, err := os.ReadFile(filepath.Join(base, "profiles.ini")); err == nil {
 		list = parseFirefoxProfiles(data, base, fx)
 	}
-	seen := map[string]bool{}
-	for _, b := range list {
-		seen[b.argv[len(b.argv)-1]] = true
+	return list
+}
+
+// firefoxProfileNames reads the real display name for each profile directory
+// from the modern Firefox profile-group sqlite DBs. Modern profiles store their
+// user-facing name there, not in the directory name (a dir may be
+// "<hash>.Profile 4" while its name is "Movies"). It shells out to the sqlite3
+// CLI to avoid adding a sqlite binding; -readonly never writes Firefox's files.
+// If the CLI is missing or a DB is locked, that entry is simply absent and the
+// caller falls back to the directory-derived name.
+func firefoxProfileNames(base string) map[string]string {
+	names := map[string]string{}
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		return names
 	}
-	return append(list, firefoxDirProfiles(base, fx, seen)...)
+	groups, err := filepath.Glob(filepath.Join(base, "Profile Groups", "*.sqlite"))
+	if err != nil {
+		return names
+	}
+	for _, g := range groups {
+		// The sqlite3 CLI escapes control bytes in text output, so split on the
+		// printable column separator | instead: a profile dir name never has one.
+		out, err := exec.Command("sqlite3", "-readonly", "-separator", "|", g,
+			"SELECT path, name FROM Profiles;").Output()
+		if err != nil {
+			continue
+		}
+		for _, line := range strings.Split(string(out), "\n") {
+			if i := strings.IndexByte(line, '|'); i > 0 {
+				if n := line[i+1:]; n != "" {
+					names[line[:i]] = n
+				}
+			}
+		}
+	}
+	return names
 }
 
 // firefoxDirProfiles finds real profile directories on disk. Modern Firefox

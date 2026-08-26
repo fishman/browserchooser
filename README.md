@@ -66,15 +66,15 @@ picker. Browser ids come from the executable basename (e.g. `firefox`,
 ## Settings
 
 Optional `config.toml` in the user config dir
-(`$XDG_CONFIG_HOME/browserchooser/config.toml`). Off by default.
+(`$XDG_CONFIG_HOME/browserchooser/config.toml`).
 
 | key | effect |
 |-----|--------|
-| `firefox.profiles` | list every Firefox profile (from `profiles.ini`) as its own selection, launched with `-profile` |
+| `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Names come from `profiles.ini` and, for modern profile-group profiles, the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name if it is unavailable) |
 
 ```toml
 [firefox]
-profiles = true
+profiles = false
 ```
 
 ## Build

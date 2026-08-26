@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -40,6 +41,31 @@ func TestFirefoxDirProfiles(t *testing.T) {
 	want := []string{"firefox", "-profile", filepath.Join(base, "5X601kJG.Profile 4")}
 	if len(got4.argv) != len(want) || got4.argv[0] != want[0] || got4.argv[2] != want[2] {
 		t.Errorf("argv = %v, want %v", got4.argv, want)
+	}
+}
+
+func TestFirefoxProfileNames(t *testing.T) {
+	if _, err := exec.LookPath("sqlite3"); err != nil {
+		t.Skip("sqlite3 CLI not available")
+	}
+	base := t.TempDir()
+	groups := filepath.Join(base, "Profile Groups")
+	if err := os.MkdirAll(groups, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	db := filepath.Join(groups, "abc123.sqlite")
+	sql := "CREATE TABLE Profiles(path TEXT, name TEXT);" +
+		"INSERT INTO Profiles VALUES('5X601kJG.Profile 4','Movies');" +
+		"INSERT INTO Profiles VALUES('jBIu9IkI.Profile 2','Home');"
+	if out, err := exec.Command("sqlite3", db, sql).CombinedOutput(); err != nil {
+		t.Fatalf("create db: %v: %s", err, out)
+	}
+	got := firefoxProfileNames(base)
+	if got["5X601kJG.Profile 4"] != "Movies" {
+		t.Errorf("missing Movies: %v", got)
+	}
+	if got["jBIu9IkI.Profile 2"] != "Home" {
+		t.Errorf("missing Home: %v", got)
 	}
 }
 

@@ -22,19 +22,22 @@ func settingsPath() string {
 }
 
 // loadSettings reads the optional config.toml. A missing or malformed file
-// yields zero-value settings, i.e. every optional feature is off.
+// yields defaults: firefox profiles are listed unless explicitly disabled.
 func loadSettings() settings {
+	s := settings{}
+	s.Firefox.Profiles = true
 	p := settingsPath()
 	if p == "" {
-		return settings{}
+		return s
 	}
 	data, err := os.ReadFile(p)
 	if err != nil {
-		return settings{}
+		return s
 	}
-	var s settings
+	// Absent keys keep their current value, so an explicit profiles=false
+	// overrides the default while a missing key leaves it enabled.
 	if toml.Unmarshal(data, &s) != nil {
-		return settings{}
+		return s
 	}
 	return s
 }
