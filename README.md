@@ -143,7 +143,7 @@ existence and keeps it small.
 | tool | model | misses for us |
 |------|-------|---------------|
 | Browserosaurus / Browseratops | default-browser hook that pops a menu | Electron (Node + WebKit) runtime; macOS/Windows only, no Linux/Wayland |
-| `@browsers`-style launcher scripts | rofi shell/JS scripts that parse `profiles.ini` | pulled in a pile of deps; miss **modern** Firefox profile-group profiles, which live in `Profile Groups` sqlite DBs, not `profiles.ini`; rofi sits on X11, not Wayland |
+| Browsers (`browsers.software`) | Rust context-menu picker on the druid GUI toolkit (GTK3 on Linux) | hard to extend; the toolkit is the older GTK3, not GTK4; heavier to build than a single Go binary |
 | linkquisition | Go browser chooser with routing rules | far larger codebase to audit for a one-purpose tool |
 
 browserchooser keeps three properties the above split across them:
@@ -153,9 +153,10 @@ browserchooser keeps three properties the above split across them:
 - **Modern Firefox profiles work.** Real names are read from the `Profile
   Groups` sqlite DBs (via the `sqlite3` CLI), not `profiles.ini`, so the
   profiles that exist after Firefox 137 resolve to their actual names.
-- **Cross-platform and Wayland-native.** Fyne draws directly on Wayland (and
-  X11), and the same binary runs on Linux, macOS, and Windows. The dedicated
-  pickers above are each locked to one OS.
+- **Cross-platform and Wayland-native.** The same binary runs on Linux, macOS,
+  and Windows. Fyne renders its own widgets on Wayland (and X11), rather than
+  wrapping a legacy native toolkit like the GTK3-backed Browsers or the
+  Electron runtime of the Browserosaurus forks.
 
 The codebase stays small enough to read end to end, which matters for a tool
 that sits at the default-browser boundary.
