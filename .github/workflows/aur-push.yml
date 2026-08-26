@@ -1,0 +1,67 @@
+name: AUR push
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  aur:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Derive and validate version
+        id: ver
+        env:
+          REF: ${{ github.ref_name }}
+        run: |
+          v="${REF#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || \
+            { echo "tag $REF is not vMAJOR.MINOR.PATCH" >&2; exit 1; }
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+
+      - name: Generate PKGBUILD + .SRCINFO
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+          GIT_EMAIL: ${{ secrets.AUR_GIT_EMAIL }}
+        run: |
+          docker run --rm -e VERSION="$VERSION" -e GIT_EMAIL="$GIT_EMAIL" -v "$PWD:/build" \
+            archlinux/archlinux:base-devel bash -c '
+            pacman -Syu --noconfirm >/dev/null
+            pacman -S --noconfirm --needed git >/dev/null
+            cd /build
+            make aur
+            cd .build-aur
+            useradd -m builder
+            chown -R builder /build/.build-aur
+            runuser -u builder -- makepkg --printsrcinfo > /build/.build-aur/.SRCINFO
+          '
+
+      - name: Push to AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_GIT_EMAIL: ${{ secrets.AUR_GIT_EMAIL }}
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          if [ -z "$AUR_SSH_KEY" ] || [ -z "$AUR_GIT_EMAIL" ]; then
+            echo "missing AUR_SSH_KEY/AUR_GIT_EMAIL secrets, skipping push"
+            exit 0
+          fi
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$AUR_SSH_KEY" > "$HOME/.ssh/aur"
+          chmod 600 "$HOME/.ssh/aur"
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+          rm -rf /tmp/aur-browserchooser
+          git clone "ssh://aur@aur.archlinux.org/browserchooser.git" /tmp/aur-browserchooser
+          cp .build-aur/PKGBUILD .build-aur/.SRCINFO /tmp/aur-browserchooser/
+          cd /tmp/aur-browserchooser
+          git config user.name "browserchooser release"
+          git config user.email "$AUR_GIT_EMAIL"
+          git add PKGBUILD .SRCINFO
+          git commit -m "browserchooser $VERSION"
+          git push

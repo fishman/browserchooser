@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Browser Chooser
+Comment=Choose a browser for a link, or copy it to the clipboard
+Exec=browserchooser %u
+TryExec=browserchooser
+Terminal=false
+Categories=Utility;
+Keywords=browser;chooser;link;url;open;
+MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;
+StartupNotify=false
+NoDisplay=false

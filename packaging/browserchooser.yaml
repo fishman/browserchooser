@@ -1,0 +1,17 @@
+name: browserchooser
+arch: amd64
+platform: linux
+version: "{{ .Env.VERSION }}"
+section: utils
+priority: optional
+maintainer: Reza Jelveh <{{ .Env.GIT_EMAIL }}>
+description: |
+  rofi-style browser selector
+  Pick a browser for a link, or copy it to the clipboard.
+homepage: https://github.com/fishman/browserchooser
+license: MIT
+contents:
+  - src: ./browserchooser
+    dst: /usr/bin/browserchooser
+  - src: ./dev.fishman.browserchooser.desktop
+    dst: /usr/share/applications/dev.fishman.browserchooser.desktop
