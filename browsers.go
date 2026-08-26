@@ -372,8 +372,10 @@ func frecencyScore(count int, last int64) float64 {
 }
 
 // rankRows returns at most 4 matching browsers ordered by fuzzy then frecency.
-// The copy-link row is not part of the match set; the UI pins it at key 5.
-func rankRows(browsers []browser, stats map[string]useStat, query string) []row {
+// When hostTop is a learned per-host preference, that browser is moved to the
+// front so the site's usual browser trumps global popularity. The copy-link row
+// is not part of the match set; the UI pins it at key 5.
+func rankRows(browsers []browser, stats map[string]useStat, query, hostTop string) []row {
 	type scored struct {
 		b browser
 		s float64
@@ -393,6 +395,16 @@ func rankRows(browsers []browser, stats map[string]useStat, query string) []row 
 		}
 		return sc[i].b.name < sc[j].b.name
 	})
+	if hostTop != "" {
+		for i := range sc {
+			if sc[i].b.id == hostTop {
+				top := sc[i]
+				copy(sc[1:i+1], sc[0:i])
+				sc[0] = top
+				break
+			}
+		}
+	}
 	rows := make([]row, 0, maxRows)
 	for i, x := range sc {
 		if i >= maxRows {

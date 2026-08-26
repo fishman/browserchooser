@@ -67,20 +67,7 @@ func main() {
 	w := a.NewWindow(winTitle)
 	u := newUI(a, w, url)
 	u.applyTheme()
-	if url != "" {
-		if h := hostOf(url); h != "" {
-			if id := dominantHostID(loadState().Hosts[h]); id != "" {
-				if b := findBrowser(u.browsers, id); b != nil {
-					u.promptHost, u.promptBrowser = h, b
-				}
-			}
-		}
-	}
-	if u.promptBrowser != nil {
-		w.SetContent(u.promptContent())
-	} else {
-		w.SetContent(u.content())
-	}
+	w.SetContent(u.content())
 	w.Resize(fyne.NewSize(winW, winH))
 	w.CenterOnScreen()
 	u.refresh()
@@ -89,20 +76,19 @@ func main() {
 }
 
 type appUI struct {
-	a             fyne.App
-	w             fyne.Window
-	url           string
-	browsers      []browser
-	stats         map[string]useStat
-	entry         *numEntry
-	list          *widget.List
-	rows          []row
-	loc           *i18n.Localizer
-	dark          bool
-	showQR        bool
-	selTimer      *time.Timer
-	promptHost    string
-	promptBrowser *browser
+	a        fyne.App
+	w        fyne.Window
+	url      string
+	browsers []browser
+	stats    map[string]useStat
+	entry    *numEntry
+	list     *widget.List
+	rows     []row
+	loc      *i18n.Localizer
+	dark     bool
+	showQR   bool
+	selTimer *time.Timer
+	hostTop  string
 }
 
 func newUI(a fyne.App, w fyne.Window, url string) *appUI {
@@ -115,11 +101,19 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 		u.browsers = []browser{fallbackBrowser()}
 	}
 	u.stats = loadStats(u.browsers)
+	if h := hostOf(url); h != "" {
+		u.hostTop = dominantHostID(loadState().Hosts[h])
+	}
 	w.SetTitle(u.l(msgTitle))
 
 	u.entry = &numEntry{}
 	u.entry.Scroll = fyne.ScrollNone // clip text, no scrollbars
 	u.entry.SetPlaceHolder(u.l(msgPlaceholder))
+	if u.hostTop != "" {
+		if b := findBrowser(u.browsers, u.hostTop); b != nil {
+			u.entry.SetPlaceHolder(fmt.Sprintf(u.l(msgHostTop), b.name, hostOf(url)))
+		}
+	}
 	u.entry.OnChanged = func(string) { u.refresh() }
 	u.entry.OnSubmitted = func(string) {
 		if len(u.rows) > 0 {
@@ -339,7 +333,7 @@ func (u *appUI) chipText() color.Color {
 // refresh re-ranks rows and debounces the highlight so rapid keystrokes don't
 // make the selection jump; the window size stays fixed.
 func (u *appUI) refresh() {
-	u.rows = rankRows(u.browsers, u.stats, u.entry.Text)
+	u.rows = rankRows(u.browsers, u.stats, u.entry.Text, u.hostTop)
 	if u.selTimer != nil {
 		u.selTimer.Stop()
 	}
@@ -418,31 +412,6 @@ func (u *appUI) launch(b *browser) {
 		return
 	}
 	recordOpen(u.url, b.id)
-}
-
-// promptContent returns the remembered-browser confirmation view. The prompt
-// is the window content (not an overlay) so Enter and Esc reach it instead of
-// the picker's entry.
-func (u *appUI) promptContent() fyne.CanvasObject {
-	p := newPromptView(u, u.promptHost, u.promptBrowser)
-	time.AfterFunc(0, func() {
-		fyne.Do(func() { u.w.Canvas().Focus(p) })
-	})
-	return container.NewCenter(p)
-}
-
-// promptOpen opens the remembered browser. Confirming reinforces the
-// preference; declining (promptDecline) falls through to the picker, and a
-// different choice there updates the host counts as usual.
-func (u *appUI) promptOpen() {
-	u.launch(u.promptBrowser)
-	u.a.Quit()
-}
-
-func (u *appUI) promptDecline() {
-	u.w.SetContent(u.content())
-	u.refresh()
-	u.focusEntry()
 }
 
 func (u *appUI) l(id string) string {

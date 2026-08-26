@@ -132,19 +132,38 @@ func TestRankRows(t *testing.T) {
 		"c": {Count: 20},
 		"b": {Count: 5},
 	}
-	rows := rankRows(browsers, stats, "")
+	rows := rankRows(browsers, stats, "", "")
 	if len(rows) != 4 {
 		t.Fatalf("want 4 browsers, got %d", len(rows))
 	}
 	if rows[0].label != "Charlie" {
 		t.Errorf("frecency leader should rank first, got %q", rows[0].label)
 	}
-	filtered := rankRows(browsers, stats, "al")
+	filtered := rankRows(browsers, stats, "al", "")
 	if len(filtered) != 2 {
 		t.Fatalf("'al' should match Alpha and Delta, got %d rows", len(filtered))
 	}
 	if filtered[0].label != "Alpha" {
 		t.Errorf("fuzzy match should rank Alpha first, got %q", filtered[0].label)
+	}
+}
+
+func TestRankRowsHostTop(t *testing.T) {
+	browsers := []browser{
+		{id: "chrome", name: "Google Chrome"},
+		{id: "firefox", name: "Firefox"},
+		{id: "brave", name: "Brave"},
+		{id: "edge", name: "Edge"},
+	}
+	stats := map[string]useStat{"chrome": {Count: 100}} // globally popular
+	if rows := rankRows(browsers, stats, "", "firefox"); rows[0].label != "Firefox" {
+		t.Errorf("host-learned firefox should trump popular chrome, got %q", rows[0].label)
+	}
+	if rows := rankRows(browsers, stats, "", ""); rows[0].label != "Google Chrome" {
+		t.Errorf("without hostTop, popular chrome ranks first, got %q", rows[0].label)
+	}
+	if rows := rankRows(browsers, stats, "br", "firefox"); rows[0].label != "Brave" {
+		t.Errorf("a filter query should still outrank hostTop, got %q", rows[0].label)
 	}
 }
 

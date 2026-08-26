@@ -19,8 +19,9 @@ browserchooser stays deliberately small:
 - **Frecency without a dialog.** Match ordering is derived from how often and
   how recently each browser was used - no configuration dialog, no preference
   pane. Sites you consistently open in one browser are remembered per host:
-  after a few opens, opening that site prompts to reuse the same browser
-  (Enter) instead of the full picker.
+  after a few opens, that browser ranks first in the picker (above the
+  globally popular one) and the input hints "Enter opens <browser>", so Enter
+  opens the site in its usual browser without a configuration dialog.
 - **No complex behaviour.** No daemon, no background state beyond a usage
   counter, no plugins.
 

@@ -18,10 +18,7 @@ const (
 	msgPlaceholder = "placeholder"
 	msgCopyLink    = "copyLink"
 	msgShowQR      = "showQR"
-	msgHostPrompt  = "hostPrompt"
-	msgHostHint    = "hostHint"
-	msgHostOpen    = "hostOpen"
-	msgHostChoose  = "hostChoose"
+	msgHostTop     = "hostTop"
 
 	// selection highlight debounce so rapid keystrokes don't jump the cursor
 	selDebounce = 20 * time.Millisecond
