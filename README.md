@@ -4,6 +4,27 @@ A small rofi-style browser selector for Linux, macOS, and Windows. Point it at
 a URL and pick which browser opens it, or copy the link to the clipboard and
 share it. Built with [Fyne](https://fyne.io) in Go.
 
+## Design principles
+
+browserchooser stays deliberately small:
+
+- **Simple tool.** One job, one window: pick a browser for a link.
+- **Few dependencies.** Go + Fyne and nothing else at runtime; no Electron,
+  Node, or script interpreter to ship or keep patched. Detecting profiles
+  shells out to tools already on the system (`sqlite3`) instead of pulling in
+  bindings.
+- **Easy-to-read config and link matcher.** All configuration lives in one
+  plain `config.toml`: theme, which browser profiles to list, and routing
+  rules written as short, declarative expressions.
+- **Frecency without a dialog.** Match ordering is derived from how often and
+  how recently each browser was used - no configuration dialog, no preference
+  pane. The more you pick a browser, the higher it ranks.
+- **No complex behaviour.** No daemon, no background state beyond a usage
+  counter, no plugins. What you see is the whole tool.
+
+The codebase is small enough to read end to end, which matters for a tool
+that sits at the default-browser boundary.
+
 ## What it does
 
 A single fixed-size window with 7 slots:
@@ -157,9 +178,6 @@ browserchooser keeps three properties the above split across them:
   and Windows. Fyne renders its own widgets on Wayland (and X11), rather than
   wrapping a legacy native toolkit like the GTK3-backed Browsers or the
   Electron runtime of the Browserosaurus forks.
-
-The codebase stays small enough to read end to end, which matters for a tool
-that sits at the default-browser boundary.
 
 ## Theme
 
