@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
 	"github.com/atotto/clipboard"
@@ -93,7 +94,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	u := &appUI{
 		a: a, w: w, url: url, loc: newLocalizer(),
 		browsers: detectBrowsers(),
-		dark:     a.Preferences().BoolWithFallback(prefDark, true),
+		dark:     true, // resolved to the effective variant in applyTheme
 	}
 	if len(u.browsers) == 0 {
 		u.browsers = []browser{fallbackBrowser()}
@@ -363,13 +364,35 @@ func (u *appUI) activate(i int) {
 	u.a.Quit()
 }
 
+// applyTheme resolves the effective variant: a stored override (F2) wins,
+// otherwise the system's dark/light from ThemeVariant. u.dark mirrors it so
+// the chip and QR colors follow the same source.
 func (u *appUI) applyTheme() {
-	u.a.Settings().SetTheme(&nordTheme{dark: u.dark})
+	v := theme.VariantDark
+	switch u.a.Preferences().IntWithFallback(prefTheme, -1) {
+	case 0:
+		v = theme.VariantLight
+	case 1:
+		v = theme.VariantDark
+	default:
+		v = u.a.Settings().ThemeVariant() // follow the system
+	}
+	u.dark = v == theme.VariantDark
+	u.a.Settings().SetTheme(&nordTheme{variant: v})
 }
 
 func (u *appUI) toggleTheme() {
-	u.dark = !u.dark
-	u.a.Preferences().SetBool(prefDark, u.dark)
+	next := theme.VariantLight
+	if u.dark {
+		next = theme.VariantLight
+	} else {
+		next = theme.VariantDark
+	}
+	if next == theme.VariantDark {
+		u.a.Preferences().SetInt(prefTheme, 1)
+	} else {
+		u.a.Preferences().SetInt(prefTheme, 0)
+	}
 	u.applyTheme()
 	u.w.SetContent(u.content())
 	u.w.Canvas().Focus(u.entry)

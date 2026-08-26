@@ -13,8 +13,8 @@ import (
 )
 
 func TestNordTheme(t *testing.T) {
-	dark := &nordTheme{dark: true}
-	light := &nordTheme{dark: false}
+	dark := &nordTheme{variant: theme.VariantDark}
+	light := &nordTheme{variant: theme.VariantLight}
 	if c := dark.Color(theme.ColorNameBackground, theme.VariantDark); c != nordPolar1 {
 		t.Errorf("dark background = %v, want %v", c, nordPolar1)
 	}

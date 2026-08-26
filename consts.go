@@ -6,8 +6,8 @@ const (
 	// app metadata
 	appID = "dev.fishman.browserchooser"
 
-	// preferences
-	prefDark = "dark"
+	// preferences; theme variant int: -1 follow system, 0 light, 1 dark
+	prefTheme = "themeVariant"
 
 	// window: fixed 7 slots (input bar + 5 rows + qr bar)
 	winW = 260

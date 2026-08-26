@@ -84,7 +84,8 @@ update-desktop-database ~/.local/share/applications
 
 ## Theme
 
-Nord palette, dark by default. Toggle with `F2`; the choice persists.
+Nord palette. Follows the system dark/light theme by default; `F2` toggles and
+the override persists.
 
 ## License
 

@@ -62,21 +62,23 @@ var nordColors = map[fyne.ThemeColorName][2]color.Color{
 	theme.ColorNameWarning:                   {nordYellow, nordYellow},
 }
 
-type nordTheme struct{ dark bool }
+type nordTheme struct{ variant fyne.ThemeVariant }
 
-func (t *nordTheme) Color(n fyne.ThemeColorName, _ fyne.ThemeVariant) color.Color {
+func (t *nordTheme) Color(n fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
 	if c, ok := nordColors[n]; ok {
-		if t.dark {
+		if variant == theme.VariantDark {
 			return c[0]
 		}
 		return c[1]
 	}
 	// the map above covers every color fyne defines; this is a neutral fallback
-	if t.dark {
+	if variant == theme.VariantDark {
 		return nordPolar1
 	}
 	return nordSnow3
 }
+
+func (t *nordTheme) Variant() fyne.ThemeVariant { return t.variant }
 
 func (t *nordTheme) Font(style fyne.TextStyle) fyne.Resource {
 	return theme.DefaultTheme().Font(style)
