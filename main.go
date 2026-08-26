@@ -117,7 +117,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 			icon := canvas.NewImageFromResource(nil)
 			icon.FillMode = canvas.ImageFillContain
 			icon.SetMinSize(fyne.NewSize(24, 24))
-			return container.NewBorder(nil, nil, container.NewPadded(icon), u.newChip(), widget.NewLabel(""))
+			return container.NewBorder(nil, nil, container.NewPadded(icon), container.NewCenter(u.newChip()), widget.NewLabel(""))
 		},
 		func(id widget.ListItemID, o fyne.CanvasObject) {
 			i := int(id)
@@ -127,7 +127,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 			img.Hidden = img.Resource == nil
 			img.Refresh() // re-raster from the new resource so the icon tracks its row
 			border.Objects[0].(*widget.Label).SetText(u.rowLabel(i))
-			chip := border.Objects[2].(*fyne.Container)
+			chip := border.Objects[2].(*fyne.Container).Objects[0].(*fyne.Container)
 			chip.Hidden = false
 			u.updateChip(chip, u.chipNumber(i))
 		},
