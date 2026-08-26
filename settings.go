@@ -24,8 +24,9 @@ type settings struct {
 
 // chromeBrowserConfig adds a Chromium-family browser whose profiles are read
 // from its "Local State", so forks (Brave, Edge, ...) need no code change.
-// Binary is optional: launcher names are derived from Name and DataDir and
-// probed on PATH (macOS uses MacBin or the Name-derived app path).
+// DataDir and Binary are optional on Linux: the data dir is probed from
+// Name/Binary-derived candidates and the launcher from PATH (macOS uses MacBin
+// or the Name-derived app path). Only Name is strictly required.
 type chromeBrowserConfig struct {
 	Name    string `toml:"name"`
 	DataDir string `toml:"data_dir"`

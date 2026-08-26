@@ -122,7 +122,7 @@ Optional `config.toml` in the user config dir
 | `theme` | color scheme: `auto` (default) follows the system, `light` and `dark` force a variant |
 | `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
 | `chrome.profiles` | list every Chromium-family profile (Google Chrome, Chromium, and any `chrome.browsers` entries, from each `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
-| `chrome.browsers` | add another Chromium-family browser (Brave, Edge, ...) whose profiles should be listed, without a code change. Each entry needs `name`, `data_dir`, `binary`, and optional `mac_binary`; see below |
+| `chrome.browsers` | add another Chromium-family browser (Brave, Edge, ...) whose profiles should be listed, without a code change. `name` is required; `data_dir`, `binary`, and `mac_binary` are optional (see below) |
 | `rules` | an array of `expr` + `browser` pairs routing URLs; see Rules |
 
 ```toml
@@ -140,19 +140,20 @@ browser = "firefox"
 ```
 
 **Adding another Chromium browser** (`[[chrome.browsers]]`): list a Chromium
-fork's profiles without changing code. `data_dir` is the relative path under
-`~/.config` (Linux), `~/Library/Application Support` (macOS), and
-`%LOCALAPPDATA%` (Windows). `binary` is optional: launcher names are derived
-from `name` and the data dir and probed on `PATH` (macOS uses `mac_binary`, or
-derives the `/Applications/<name>.app` path). Profiles get the id
-`chromium-`-style `browsername-<dir>` (here `brave-default`), so rules can
-route to them:
+fork's profiles without changing code. `name` is required; the rest is
+optional. On Linux the data dir and binary are probed: a few likely
+`~/.config/<name>`-derived paths are checked for a `Local State` file (no
+directory scan), and launcher names are looked up on `PATH`. For a nested data
+dir (Brave's `BraveSoftware/Brave-Browser`), or on macOS/Windows, set
+`data_dir` explicitly. macOS uses `mac_binary`, or derives the
+`/Applications/<name>.app` path. Profiles get the id `chromium-`-style
+`browsername-<dir>` (here `brave-default`), so rules can route to them:
 
 ```toml
 [[chrome.browsers]]
 name = "Brave"
-data_dir = "BraveSoftware/Brave-Browser"
-# binary = "brave-browser"   # optional; auto-detected from the name
+# data_dir = "BraveSoftware/Brave-Browser"  # optional on Linux; auto-probed
+# binary = "brave-browser"                  # optional; auto-detected from the name
 # mac_binary = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
 ```
 

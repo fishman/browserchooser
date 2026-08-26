@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/BurntSushi/toml"
@@ -107,5 +108,32 @@ func TestBinaryCandidates(t *testing.T) {
 	}
 	if len(got) < 3 {
 		t.Fatalf("want at least 3 candidates, got %v", got)
+	}
+}
+
+func TestDataDirCandidates(t *testing.T) {
+	got := dataDirCandidates("Brave", "brave-browser")
+	want := []string{"brave", "brave-browser", "brave-stable"}
+	for i, w := range want {
+		if got[i] != w {
+			t.Errorf("candidate %d = %q, want %q (all: %v)", i, got[i], w, got)
+		}
+	}
+}
+
+func TestDetectDataDir(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("data-dir detection is Linux-only")
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := filepath.Join(home, ".config")
+	if _, err := os.Stat(filepath.Join(cfg, "chromium", "Local State")); err != nil {
+		t.Skip("no chromium Local State to probe against")
+	}
+	if got := detectDataDir("Chromium", "chromium"); got != "chromium" {
+		t.Errorf("detectDataDir(Chromium) = %q, want chromium", got)
 	}
 }

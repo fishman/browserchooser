@@ -42,9 +42,18 @@ func chromeFamilies() []chromeFamily {
 		},
 	}
 	for _, c := range loadSettings().Chrome.Browsers {
-		if c.Name != "" && c.DataDir != "" {
-			fams = append(fams, chromeFamilyFromConfig(c))
+		if c.Name == "" {
+			continue
 		}
+		f := chromeFamilyFromConfig(c)
+		if f.linuxDir == "" {
+			f.linuxDir = detectDataDir(c.Name, familyBin(f))
+		}
+		if f.linuxDir == "" {
+			continue
+		}
+		f.macDir, f.winDir = f.linuxDir, f.linuxDir
+		fams = append(fams, f)
 	}
 	return fams
 }
@@ -93,6 +102,46 @@ func binaryCandidates(name, dataDir string) []string {
 	add(dir)
 	add(dir + "-stable")
 	return out
+}
+
+// dataDirCandidates lists likely ~/.config data-dir names for a Chromium fork,
+// derived from its display name and resolved binary, so data_dir can be
+// optional on Linux. A candidate is used only if it exists on disk.
+func dataDirCandidates(name, bin string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(s string) {
+		if s != "" && !seen[s] {
+			seen[s] = true
+			out = append(out, s)
+		}
+	}
+	base := sanitizeID(name)
+	binBase := sanitizeID(filepath.Base(bin))
+	add(base)
+	add(base + "-browser")
+	add(base + "-stable")
+	add(binBase)
+	add(binBase + "-stable")
+	return out
+}
+
+// detectDataDir finds an existing Linux data dir by probing a few derived
+// candidates for a Local State file: a handful of stat calls, no directory
+// scan, so a large ~/.config is never walked. Returns "" when none matches, so
+// nested layouts (e.g. Brave) keep an explicit data_dir.
+func detectDataDir(name, bin string) string {
+	if runtime.GOOS != "linux" {
+		return ""
+	}
+	home, _ := os.UserHomeDir()
+	cfg := filepath.Join(home, ".config")
+	for _, cand := range dataDirCandidates(name, bin) {
+		if exists(filepath.Join(cfg, cand, "Local State")) {
+			return cand
+		}
+	}
+	return ""
 }
 
 // familyBase is the "User Data" dir holding Local State and one subdir per
