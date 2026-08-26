@@ -445,6 +445,18 @@ type numEntry struct {
 	onTheme  func()
 }
 
+// FocusLost pins keyboard focus back to the entry. Fyne only delivers key
+// events to the focused object, so clicking the list or QR button would
+// otherwise strand focus and stop Esc from quitting. In this modal picker the
+// entry is the only focus owner that matters.
+func (e *numEntry) FocusLost() {
+	fyne.Do(func() {
+		if c := fyne.CurrentApp().Driver().CanvasForObject(e); c != nil {
+			c.Focus(e)
+		}
+	})
+}
+
 func (e *numEntry) TypedRune(r rune) {
 	if r >= '1' && r <= '9' {
 		if e.onSelect != nil {
