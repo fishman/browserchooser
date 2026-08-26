@@ -18,12 +18,9 @@ browserchooser stays deliberately small:
   rules written as short, declarative expressions.
 - **Frecency without a dialog.** Match ordering is derived from how often and
   how recently each browser was used - no configuration dialog, no preference
-  pane. The more you pick a browser, the higher it ranks.
+  pane.
 - **No complex behaviour.** No daemon, no background state beyond a usage
-  counter, no plugins. What you see is the whole tool.
-
-The codebase is small enough to read end to end, which matters for a tool
-that sits at the default-browser boundary.
+  counter, no plugins.
 
 ## What it does
 
@@ -158,8 +155,7 @@ update-desktop-database ~/.local/share/applications
 
 ## Why not an existing browser chooser?
 
-There are established link-picker tools; here is what pushed this one into
-existence and keeps it small.
+Existing link-picker tools, and the differences that matter:
 
 | tool | model | misses for us |
 |------|-------|---------------|
