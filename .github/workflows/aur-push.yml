@@ -33,15 +33,16 @@ jobs:
           docker run --rm -e VERSION="$VERSION" -e GIT_EMAIL="$GIT_EMAIL" -v "$PWD:/build" \
             archlinux/archlinux:base-devel bash -c '
             pacman -Syu --noconfirm >/dev/null
-            pacman -S --noconfirm --needed git libglvnd mesa libx11 \
-              libxrandr libxinerama libxcursor libxi libxkbcommon wayland \
-              xorgproto dbus >/dev/null
+            pacman -S --noconfirm --needed git go libglvnd mesa libx11 \
+              libxrandr libxinerama libxcursor libxi libxxf86vm \
+              libxkbcommon wayland xorgproto >/dev/null
             cd /build
-            make aur
-            cd .build-aur
             useradd -m builder
-            chown -R builder /build/.build-aur
-            runuser -u builder -- makepkg --printsrcinfo > /build/.build-aur/.SRCINFO
+            chown -R builder /build
+            runuser -u builder -- make aur
+            runuser -u builder -- make aur-x11
+            runuser -u builder -- sh -c "cd /build/.build-aur && makepkg --printsrcinfo > .SRCINFO"
+            runuser -u builder -- sh -c "cd /build/.build-aur-x11 && makepkg --printsrcinfo > .SRCINFO"
           '
 
       - name: Push to AUR
@@ -58,12 +59,17 @@ jobs:
           printf '%s\n' "$AUR_SSH_KEY" > "$HOME/.ssh/aur"
           chmod 600 "$HOME/.ssh/aur"
           export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/aur -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
-          rm -rf /tmp/aur-browserchooser
-          git clone "ssh://aur@aur.archlinux.org/browserchooser.git" /tmp/aur-browserchooser
-          cp .build-aur/PKGBUILD .build-aur/.SRCINFO /tmp/aur-browserchooser/
-          cd /tmp/aur-browserchooser
-          git config user.name "browserchooser release"
-          git config user.email "$AUR_GIT_EMAIL"
-          git add PKGBUILD .SRCINFO
-          git commit -m "browserchooser $VERSION"
-          git push
+          for pair in "browserchooser .build-aur" "browserchooser-x11 .build-aur-x11"; do
+            set -- $pair
+            name=$1
+            src=$2
+            rm -rf "/tmp/aur-$name"
+            git clone "ssh://aur@aur.archlinux.org/$name.git" "/tmp/aur-$name"
+            cp "$src/PKGBUILD" "$src/.SRCINFO" "/tmp/aur-$name/"
+            cd "/tmp/aur-$name"
+            git config user.name "browserchooser release"
+            git config user.email "$AUR_GIT_EMAIL"
+            git add PKGBUILD .SRCINFO
+            git commit -m "$name $VERSION"
+            git push
+          done

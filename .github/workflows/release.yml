@@ -73,7 +73,7 @@ jobs:
             { echo "tag $REF is not vMAJOR.MINOR.PATCH" >&2; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
 
-      - name: Build Arch package
+      - name: Build Arch packages
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           GIT_EMAIL: ${{ secrets.AUR_GIT_EMAIL }}
@@ -82,17 +82,22 @@ jobs:
             archlinux/archlinux:base-devel bash -c '
             pacman -Syu --noconfirm >/dev/null
             pacman -S --noconfirm --needed git go libglvnd mesa libx11 \
-              libxrandr libxinerama libxcursor libxi libxkbcommon wayland \
-              xorgproto dbus >/dev/null
+              libxrandr libxinerama libxcursor libxi libxxf86vm \
+              libxkbcommon wayland xorgproto >/dev/null
             cd /build
-            make aur
+            useradd -m builder
+            chown -R builder /build
+            runuser -u builder -- make aur
+            runuser -u builder -- make aur-x11
           '
 
-      - name: Upload Arch package
+      - name: Upload Arch packages
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: arch
-          path: .build-aur/*.pkg.tar.zst
+          path: |
+            .build-aur/*.pkg.tar.zst
+            .build-aur-x11/*.pkg.tar.zst
 
   release:
     needs: [deb-rpm, arch]
