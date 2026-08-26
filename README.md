@@ -47,9 +47,10 @@ and registers it as the default handler for `text/html`, `http`, `https`, and
 
 ## Rules
 
-Optionally route URLs to a specific browser with `[[rules]]` in `config.toml`.
-Each rule is an [expr](https://expr-lang.github.io/) expression over the
-variable `link` that must evaluate to a bool, plus the browser id to use:
+Route a URL to a specific browser without opening the picker. Rules live in
+`config.toml` as `[[rules]]`. Each rule pairs an
+[expr](https://expr-lang.github.io/) expression that must evaluate to a bool
+with the browser id to open:
 
 ```toml
 [[rules]]
@@ -57,10 +58,37 @@ expr = 'link contains "github.com"'
 browser = "firefox"
 ```
 
-The first matching rule wins; a match opens its browser without showing the
-picker. Browser ids come from the executable basename (e.g. `firefox`,
-`google-chrome`); modern Firefox profiles use their real profile name, so the
-id is `firefox-<name>` (e.g. `firefox-work`).
+- `link` is the URL being opened.
+- Expressions are ordinary
+  [expr](https://expr-lang.github.io/lang/) booleans over `link`: string
+  operators (`contains`, `startsWith`, `endsWith`, `matches` for regex),
+  `in`, comparisons, and `and` / `or` / `not`. The full expression language
+  applies.
+- Rules are evaluated **top to bottom; the first match wins** and opens its
+  browser immediately. If nothing matches, or there are no rules, the picker
+  appears as usual.
+
+```toml
+[[rules]]
+expr = 'link matches "^(https?://)?github\\.com/"'
+browser = "firefox-work"   # a modern Firefox profile by real name
+
+[[rules]]
+expr = 'link contains "youtube.com" and link startsWith "https://"'
+browser = "google-chrome"
+```
+
+**Browser ids** used in `browser`:
+
+| browser kind | id | example |
+|--------------|----|---------|
+| standalone binary | executable basename | `firefox`, `google-chrome` |
+| Firefox profile (classic or modern) | `firefox-<name>` | `firefox-work`, `firefox-profile-4` |
+| Chrome profile | `chrome-<dir>` | `chrome-default`, `chrome-profile-1` |
+
+Modern Firefox ids come from the real profile name stored in the `Profile
+Groups` sqlite DBs; classic and Chrome ids use the sanitized profile/directory
+name. Ids are lowercased with non-alphanumeric characters turned into `-`.
 
 ## Settings
 
