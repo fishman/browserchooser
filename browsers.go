@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"os"
@@ -42,8 +41,8 @@ type useStat struct {
 }
 
 type rule struct {
-	Expr    string `json:"expr"`
-	Browser string `json:"browser"`
+	Expr    string `json:"expr" toml:"expr"`
+	Browser string `json:"browser" toml:"browser"`
 }
 
 type row struct {
@@ -396,28 +395,8 @@ func rankRows(browsers []browser, stats map[string]useStat, query string) []row 
 	return rows
 }
 
-func rulesPath() string {
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return ""
-	}
-	return filepath.Join(dir, "browserchooser", "rules.json")
-}
-
 func loadRules() []rule {
-	p := rulesPath()
-	if p == "" {
-		return nil
-	}
-	data, err := os.ReadFile(p)
-	if err != nil {
-		return nil
-	}
-	var rules []rule
-	if json.Unmarshal(data, &rules) != nil {
-		return nil
-	}
-	return rules
+	return loadSettings().Rules
 }
 
 // matchRule returns the first browser whose rule expression matches the url.

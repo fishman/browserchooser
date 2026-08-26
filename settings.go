@@ -17,6 +17,8 @@ type settings struct {
 	Chrome struct {
 		Profiles bool `toml:"profiles"`
 	} `toml:"chrome"`
+	// Rules route URLs to a browser; the first matching rule wins.
+	Rules []rule `toml:"rules"`
 }
 
 func settingsPath() string {

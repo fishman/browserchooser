@@ -4,7 +4,8 @@ import "time"
 
 const (
 	// app metadata
-	appID = "dev.fishman.browserchooser"
+	appID    = "dev.fishman.browserchooser"
+	winTitle = "Browser Chooser"
 
 	// window: fixed 7 slots (input bar + 5 rows + qr bar)
 	winW = 260

@@ -64,7 +64,7 @@ func main() {
 		}
 	}
 
-	w := a.NewWindow("Browser Chooser")
+	w := a.NewWindow(winTitle)
 	u := newUI(a, w, url)
 	u.applyTheme()
 	w.SetContent(u.content())

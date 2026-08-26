@@ -47,20 +47,20 @@ and registers it as the default handler for `text/html`, `http`, `https`, and
 
 ## Rules
 
-Optionally route URLs to a specific browser with `rules.json` in the
-user config dir (`$XDG_CONFIG_HOME/browserchooser/rules.json`). Each rule is an
-[expr](https://expr-lang.github.io/) expression over the variable `link` that
-must evaluate to a bool, plus the browser id to use:
+Optionally route URLs to a specific browser with `[[rules]]` in `config.toml`.
+Each rule is an [expr](https://expr-lang.github.io/) expression over the
+variable `link` that must evaluate to a bool, plus the browser id to use:
 
-```json
-[
-  {"expr": "link contains \"github.com\"", "browser": "firefox"}
-]
+```toml
+[[rules]]
+expr = 'link contains "github.com"'
+browser = "firefox"
 ```
 
 The first matching rule wins; a match opens its browser without showing the
 picker. Browser ids come from the executable basename (e.g. `firefox`,
-`google-chrome`).
+`google-chrome`); modern Firefox profiles use their real profile name, so the
+id is `firefox-<name>` (e.g. `firefox-work`).
 
 ## Settings
 
@@ -72,6 +72,7 @@ Optional `config.toml` in the user config dir
 | `theme` | color scheme: `auto` (default) follows the system, `light` and `dark` force a variant |
 | `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
 | `chrome.profiles` | list every Google Chrome profile (from `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
+| `rules` | an array of `expr` + `browser` pairs routing URLs; see Rules |
 
 ```toml
 theme = "dark"
@@ -81,6 +82,10 @@ profiles = false
 
 [chrome]
 profiles = true
+
+[[rules]]
+expr = 'link contains "github.com"'
+browser = "firefox"
 ```
 
 ## Build

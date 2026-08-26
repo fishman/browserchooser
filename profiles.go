@@ -41,7 +41,10 @@ func firefoxProfiles() []browser {
 		list := firefoxDirProfiles(base, fx, map[string]bool{})
 		for i := range list {
 			if n, ok := names[filepath.Base(list[i].argv[len(list[i].argv)-1])]; ok && n != "" {
+				// The real name drives both the display and the id so rules can
+				// route to "firefox-work" instead of the opaque dir-derived id.
 				list[i].name = "Firefox - " + n
+				list[i].id = "firefox-" + sanitizeID(n)
 			}
 		}
 		return list
