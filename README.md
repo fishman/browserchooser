@@ -70,11 +70,15 @@ Optional `config.toml` in the user config dir
 
 | key | effect |
 |-----|--------|
-| `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Names come from `profiles.ini` and, for modern profile-group profiles, the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name if it is unavailable) |
+| `firefox.profiles` | list every Firefox profile as its own selection, launched with `-profile`. **On by default**; set to `false` to disable. Covers classic `profiles.ini` profiles and **modern profile-group profiles**, whose real names are read from the `Profile Groups` sqlite DBs (via the `sqlite3` CLI; falls back to the directory name when that is unavailable). Works on Linux, macOS, and Windows |
+| `chrome.profiles` | list every Google Chrome profile (from `Local State`) as its own selection, launched with `--profile-directory`. **On by default**; set to `false` to disable |
 
 ```toml
 [firefox]
 profiles = false
+
+[chrome]
+profiles = true
 ```
 
 ## Build

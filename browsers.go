@@ -61,8 +61,12 @@ func detectBrowsers() []browser {
 	default:
 		list = detectLinux()
 	}
-	if loadSettings().Firefox.Profiles {
+	s := loadSettings()
+	if s.Firefox.Profiles {
 		list = append(list, firefoxProfiles()...)
+	}
+	if s.Chrome.Profiles {
+		list = append(list, chromeProfiles()...)
 	}
 	return list
 }

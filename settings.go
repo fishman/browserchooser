@@ -11,6 +11,9 @@ type settings struct {
 	Firefox struct {
 		Profiles bool `toml:"profiles"`
 	} `toml:"firefox"`
+	Chrome struct {
+		Profiles bool `toml:"profiles"`
+	} `toml:"chrome"`
 }
 
 func settingsPath() string {
@@ -26,6 +29,7 @@ func settingsPath() string {
 func loadSettings() settings {
 	s := settings{}
 	s.Firefox.Profiles = true
+	s.Chrome.Profiles = true
 	p := settingsPath()
 	if p == "" {
 		return s

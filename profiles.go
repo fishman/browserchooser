@@ -119,12 +119,7 @@ func firefoxDirProfiles(base, fx string, seen map[string]bool) []browser {
 		if i := strings.IndexByte(display, '.'); i == 8 {
 			display = display[i+1:]
 		}
-		list = append(list, browser{
-			id:   "firefox-" + sanitizeID(display),
-			name: "Firefox - " + display,
-			argv: []string{fx, "-profile", p},
-			icon: iconResource("firefox"),
-		})
+		list = append(list, profileBrowser("Firefox", "firefox-", "firefox", display, display, []string{fx, "-profile", p}))
 	}
 	return list
 }
@@ -152,12 +147,7 @@ func parseFirefoxProfiles(data []byte, base, fx string) []browser {
 		if name == "" {
 			name = filepath.Base(p)
 		}
-		list = append(list, browser{
-			id:   "firefox-" + sanitizeID(name),
-			name: "Firefox - " + name,
-			argv: []string{fx, "-profile", p},
-			icon: iconResource("firefox"),
-		})
+		list = append(list, profileBrowser("Firefox", "firefox-", "firefox", name, name, []string{fx, "-profile", p}))
 	}
 	return list
 }
@@ -190,6 +180,26 @@ func parseINI(s string) []iniSection {
 		}
 	}
 	return out
+}
+
+// profileBrowser assembles a browser entry for one profile dir, shared across
+// browser families. The name falls back to the dir when empty; id is stable
+// via the per-family prefix.
+func profileBrowser(brand, idPrefix, icon, dir, name string, argv []string) browser {
+	if name == "" {
+		name = dir
+	}
+	return browser{
+		id:   idPrefix + sanitizeID(dir),
+		name: brand + " - " + name,
+		argv: argv,
+		icon: iconResource(icon),
+	}
+}
+
+func dirExists(base, dir string) bool {
+	st, err := os.Stat(filepath.Join(base, dir))
+	return err == nil && st.IsDir()
 }
 
 func sanitizeID(s string) string {
