@@ -7,6 +7,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"fyne.io/fyne/v2/theme"
@@ -52,6 +53,30 @@ func TestIconResourceName(t *testing.T) {
 	}
 	if iconResource("missing") != nil {
 		t.Error("unknown icon name should resolve to nil")
+	}
+}
+
+// TestIconForNonMac verifies that on non-macOS a browser's icon comes from the
+// theme name only, and the mac app bundle is never consulted.
+func TestIconForNonMac(t *testing.T) {
+	if runtime.GOOS == "darwin" {
+		t.Skip("macOS resolves icons from app bundles")
+	}
+	old := iconRoots
+	defer func() { iconRoots = old }()
+	dir := t.TempDir()
+	p := filepath.Join(dir, "icons", "hicolor", "scalable", "apps")
+	if err := os.MkdirAll(p, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(p, "firefox.svg"), []byte("<svg/>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	iconRoots = []string{dir}
+
+	r := iconFor("firefox", "Google Chrome") // macApp must be ignored on Linux
+	if r == nil || r.Name() != "firefox.svg" {
+		t.Fatalf("iconFor on linux should resolve the theme, got %v", r)
 	}
 }
 

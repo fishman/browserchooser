@@ -23,7 +23,7 @@ func TestParseChromeProfiles(t *testing.T) {
 		"Profile 1":{"name":"Work"},
 		"Profile 2":{"name":"Missing"}
 	}}}`)
-	got := parseChromeProfiles(data, base, "google-chrome", "Chrome", "chrome-", "google-chrome")
+	got := parseChromeProfiles(data, base, "google-chrome", "Chrome", "chrome-", nil)
 
 	if len(got) != 2 {
 		t.Fatalf("want 2 profiles (missing dir skipped), got %d", len(got))
@@ -43,7 +43,7 @@ func TestParseChromiumProfiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	data := []byte(`{"profile":{"info_cache":{"Default":{"name":"Person 1"}}}}`)
-	got := parseChromeProfiles(data, base, "chromium", "Chromium", "chromium-", "chromium")
+	got := parseChromeProfiles(data, base, "chromium", "Chromium", "chromium-", nil)
 	if len(got) != 1 {
 		t.Fatalf("want 1 profile, got %d", len(got))
 	}
@@ -56,7 +56,7 @@ func TestParseChromiumProfiles(t *testing.T) {
 }
 
 func TestParseChromeProfilesEmpty(t *testing.T) {
-	if got := parseChromeProfiles([]byte(`{"profile":{}}`), t.TempDir(), "x", "Chrome", "chrome-", "google-chrome"); len(got) != 0 {
+	if got := parseChromeProfiles([]byte(`{"profile":{}}`), t.TempDir(), "x", "Chrome", "chrome-", nil); len(got) != 0 {
 		t.Fatalf("want 0, got %d", len(got))
 	}
 }

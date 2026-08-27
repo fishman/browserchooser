@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"fyne.io/fyne/v2"
@@ -50,6 +51,38 @@ func iconResource(name string) fyne.Resource {
 	r := lookupIcon(base)
 	iconCache[name] = r
 	return r
+}
+
+// iconFor resolves a browser's icon per platform from its own data: on macOS
+// the app bundle's icns (theme names don't exist there), elsewhere the theme
+// name. The branches are exclusive per OS, so a mac bundle is never probed on
+// Linux or vice versa. macApp is the bundle name (e.g. "Google Chrome"); when
+// it can't be found on macOS the icon is nil.
+func iconFor(themeName, macApp string) fyne.Resource {
+	if runtime.GOOS != "darwin" {
+		return iconResource(themeName)
+	}
+	if macApp == "" {
+		return nil
+	}
+	p := appBundlePath(macApp)
+	if p == "" {
+		return nil
+	}
+	return macIconFromPath(p)
+}
+
+// macIconFromPath resolves an app bundle's icon, honoring the CFBundleIconFile
+// the bundle declares rather than assuming AppIcon.icns.
+func macIconFromPath(appPath string) fyne.Resource {
+	icon := "AppIcon.icns"
+	if info, err := readInfoPlist(appPath); err == nil && info.IconFile != "" {
+		icon = info.IconFile
+		if !strings.HasSuffix(icon, ".icns") {
+			icon += ".icns"
+		}
+	}
+	return appIconResource(filepath.Join(appPath, "Contents", "Resources", icon))
 }
 
 // lookupIcon resolves base by stat-ing the common pixmaps and hicolor

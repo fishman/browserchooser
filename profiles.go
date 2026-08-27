@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"fyne.io/fyne/v2"
 )
 
 func firefoxBase() string {
@@ -122,7 +124,7 @@ func firefoxDirProfiles(base, fx string, seen map[string]bool) []browser {
 		if i := strings.IndexByte(display, '.'); i == 8 {
 			display = display[i+1:]
 		}
-		list = append(list, profileBrowser("Firefox", "firefox-", "firefox", display, display, []string{fx, "-profile", p}))
+		list = append(list, profileBrowser("Firefox", "firefox-", iconFor("firefox", "Firefox"), display, display, []string{fx, "-profile", p}))
 	}
 	return list
 }
@@ -150,7 +152,7 @@ func parseFirefoxProfiles(data []byte, base, fx string) []browser {
 		if name == "" {
 			name = filepath.Base(p)
 		}
-		list = append(list, profileBrowser("Firefox", "firefox-", "firefox", name, name, []string{fx, "-profile", p}))
+		list = append(list, profileBrowser("Firefox", "firefox-", iconFor("firefox", "Firefox"), name, name, []string{fx, "-profile", p}))
 	}
 	return list
 }
@@ -188,7 +190,7 @@ func parseINI(s string) []iniSection {
 // profileBrowser assembles a browser entry for one profile dir, shared across
 // browser families. The name falls back to the dir when empty; id is stable
 // via the per-family prefix.
-func profileBrowser(brand, idPrefix, icon, dir, name string, argv []string) browser {
+func profileBrowser(brand, idPrefix string, icon fyne.Resource, dir, name string, argv []string) browser {
 	if name == "" {
 		name = dir
 	}
@@ -196,7 +198,7 @@ func profileBrowser(brand, idPrefix, icon, dir, name string, argv []string) brow
 		id:   idPrefix + sanitizeID(dir),
 		name: brand + " - " + name,
 		argv: argv,
-		icon: iconResource(icon),
+		icon: icon,
 	}
 }
 

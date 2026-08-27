@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+
+	"fyne.io/fyne/v2"
 )
 
 // chromeFamily describes one Chromium-family browser so profile detection is
@@ -201,7 +203,7 @@ func chromeProfiles() []browser {
 		if err != nil {
 			continue
 		}
-		list = append(list, parseChromeProfiles(data, familyBase(f), familyBin(f), f.brand, f.prefix, f.icon)...)
+		list = append(list, parseChromeProfiles(data, familyBase(f), familyBin(f), f.brand, f.prefix, iconFor(f.icon, f.macApp))...)
 	}
 	return list
 }
@@ -209,7 +211,7 @@ func chromeProfiles() []browser {
 // parseChromeProfiles turns a Chromium-family "Local State" JSON into one
 // browser per profile, launched with --profile-directory=<dir>. Profile names
 // come from the info_cache map; dirs that are not present on disk are skipped.
-func parseChromeProfiles(data []byte, base, bin, brand, prefix, icon string) []browser {
+func parseChromeProfiles(data []byte, base, bin, brand, prefix string, icon fyne.Resource) []browser {
 	var ls struct {
 		Profile struct {
 			InfoCache map[string]struct {

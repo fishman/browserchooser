@@ -161,30 +161,65 @@ func isBrowserEntry(e *desktop.Entry) bool {
 }
 
 func detectDarwin() []browser {
-	names := []string{
-		"Safari", "Google Chrome", "Firefox", "Microsoft Edge",
-		"Brave Browser", "Arc", "Opera", "Vivaldi", "Chromium",
-	}
+	home, _ := os.UserHomeDir()
+	return darwinApps([]string{"/Applications", filepath.Join(home, "Applications")})
+}
+
+// darwinApps lists browsers by scanning real .app bundles in dirs: any bundle
+// whose Info.plist declares http/https in its URL types, launched by bundle id
+// and given its bundle's own icon and display name. This discovers any
+// installed browser rather than a hardcoded list. The id is derived from the
+// display name so rules keep stable names (e.g. "google-chrome").
+func darwinApps(dirs []string) []browser {
 	var list []browser
-	for _, name := range names {
-		id := strings.ToLower(strings.ReplaceAll(name, " ", "-"))
-		path := appBundlePath(name)
-		if path == "" {
+	seen := map[string]bool{}
+	for _, dir := range dirs {
+		apps, err := os.ReadDir(dir)
+		if err != nil {
 			continue
 		}
-		b := browser{id: id, name: name, argv: []string{"open", "-a", name}}
-		b.icon = appIconResource(filepath.Join(path, "Contents", "Resources", "AppIcon.icns"))
-		if info, err := readInfoPlist(path); err == nil {
-			if info.BundleID != "" {
-				b.argv = []string{"open", "-b", info.BundleID}
+		for _, de := range apps {
+			if !de.IsDir() || !strings.HasSuffix(de.Name(), ".app") {
+				continue
 			}
-			if info.DisplayName != "" {
-				b.name = info.DisplayName
+			path := filepath.Join(dir, de.Name())
+			info, err := readInfoPlist(path)
+			if err != nil || info.BundleID == "" || info.BundleID == appID || !handlesURL(info) {
+				continue
+			}
+			name := info.DisplayName
+			if name == "" {
+				name = info.Name
+			}
+			if name == "" {
+				name = strings.TrimSuffix(de.Name(), ".app")
+			}
+			id := sanitizeID(name)
+			if seen[id] {
+				continue
+			}
+			seen[id] = true
+			list = append(list, browser{
+				id: id, name: name,
+				argv: []string{"open", "-b", info.BundleID},
+				icon: macIconFromPath(path),
+			})
+		}
+	}
+	sort.Slice(list, func(i, j int) bool { return list[i].name < list[j].name })
+	return list
+}
+
+// handlesURL reports whether the bundle registers as an http/https handler.
+func handlesURL(info *appInfo) bool {
+	for _, t := range info.URLTypes {
+		for _, s := range t.Schemes {
+			if s == "http" || s == "https" {
+				return true
 			}
 		}
-		list = append(list, b)
 	}
-	return list
+	return false
 }
 
 func appBundlePath(name string) string {
@@ -202,6 +237,10 @@ type appInfo struct {
 	BundleID    string `plist:"CFBundleIdentifier"`
 	DisplayName string `plist:"CFBundleDisplayName"`
 	Name        string `plist:"CFBundleName"`
+	IconFile    string `plist:"CFBundleIconFile"`
+	URLTypes    []struct {
+		Schemes []string `plist:"CFBundleURLSchemes"`
+	} `plist:"CFBundleURLTypes"`
 }
 
 func readInfoPlist(appPath string) (*appInfo, error) {
