@@ -62,12 +62,17 @@ With no argument it opens as an interactive picker. Flags:
 
 | flag | action |
 |------|--------|
-| `--set-default` | register as the default browser (Linux) |
+| `--set-default` | register as the default browser (Linux/macOS) |
 | `--help` | show usage |
 
-`--set-default` installs the desktop file to `~/.local/share/applications/`
-and registers it as the default handler for `text/html`, `http`, `https`, and
-`ftp`. The binary must be on `PATH` for it to be invoked with URLs.
+On Linux, `--set-default` installs the desktop file to
+`~/.local/share/applications/` and registers it as the default handler for
+`text/html`, `http`, `https`, and `ftp`. The binary must be on `PATH` for it
+to be invoked with URLs. On macOS it asks LaunchServices to route `http` and
+`https` links to this app's bundle id (requires the app to be installed as a
+`.app` bundle and Xcode command line tools for the Swift one-liner). When a
+link opens the app, it is delivered through the app delegate and either
+matched against the rules or shown in the picker.
 
 ## Rules
 
@@ -177,6 +182,14 @@ install -Dm755 browserchooser ~/.local/bin/browserchooser
 install -Dm644 dev.fishman.browserchooser.desktop \
   ~/.local/share/applications/dev.fishman.browserchooser.desktop
 update-desktop-database ~/.local/share/applications
+```
+
+## Install (macOS app bundle)
+
+```sh
+make mac                     # builds BrowserChooser.app (build on macOS)
+open BrowserChooser.app
+browserchooser --set-default # route http/https links here
 ```
 
 ## Packages

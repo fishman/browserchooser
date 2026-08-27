@@ -4,6 +4,7 @@ Name=Browser Chooser
 Comment=Choose a browser for a link, or copy it to the clipboard
 Exec=browserchooser %u
 TryExec=browserchooser
+Icon=browserchooser
 Terminal=false
 Categories=Utility;
 Keywords=browser;chooser;link;url;open;

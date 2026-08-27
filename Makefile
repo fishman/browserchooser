@@ -2,10 +2,19 @@ VERSION ?= $(shell git describe --tags --always 2>/dev/null | sed 's/^v//')
 # Injected by CI from a secret; falls back to the local git identity for local builds.
 GIT_EMAIL ?= $(shell git config user.email 2>/dev/null)
 
-.PHONY: build deb rpm aur aur-pkgbuild aur-x11 aur-x11-pkgbuild
+.PHONY: build deb rpm mac aur aur-pkgbuild aur-x11 aur-x11-pkgbuild
 
 build:
 	go build -o browserchooser .
+
+# Build a macOS .app bundle. Requires building on macOS (or with a darwin
+# cross toolchain): Fyne needs cgo against the platform SDK.
+mac:
+	rm -rf BrowserChooser.app
+	mkdir -p BrowserChooser.app/Contents/MacOS BrowserChooser.app/Contents/Resources
+	GOOS=darwin go build -o BrowserChooser.app/Contents/MacOS/browserchooser .
+	cp packaging/Icon.icns BrowserChooser.app/Contents/Resources/Icon.icns
+	sed 's/@VERSION@/$(VERSION)/' packaging/Info.plist > BrowserChooser.app/Contents/Info.plist
 
 deb: build
 	mkdir -p dist

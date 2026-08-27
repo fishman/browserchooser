@@ -28,9 +28,13 @@ import (
 //go:embed messages
 var messagesFS embed.FS
 
+//go:embed Icon.png
+var iconPNG []byte
+
 func main() {
 	app.SetMetadata(fyne.AppMetadata{
 		ID:         appID,
+		Icon:       fyne.NewStaticResource("Icon.png", iconPNG),
 		Migrations: map[string]bool{"fyneDo": true},
 	})
 
@@ -74,6 +78,8 @@ func main() {
 	w.CenterOnScreen()
 	u.refresh()
 	u.focusEntry()
+	roundCorners(w)                       // macOS borderless window rounded corners; no-op elsewhere
+	installURLReceiver(handleIncomingURL) // macOS default-browser URL delivery; no-op elsewhere
 	w.ShowAndRun()
 }
 
@@ -120,12 +126,7 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 
 	u.entry = &numEntry{}
 	u.entry.Scroll = fyne.ScrollNone // clip text, no scrollbars
-	u.entry.SetPlaceHolder(u.l(msgPlaceholder))
-	if u.hostTop != "" {
-		if b := findBrowser(u.browsers, u.hostTop); b != nil {
-			u.entry.SetPlaceHolder(fmt.Sprintf(u.l(msgHostTop), b.name, hostOf(url)))
-		}
-	}
+	u.entry.SetPlaceHolder(u.placeholderForURL(url))
 	u.entry.OnChanged = func(string) { u.refresh() }
 	u.entry.OnSubmitted = func(string) {
 		if len(u.rows) > 0 {
@@ -171,7 +172,54 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 		u.activate(int(id))
 		u.list.UnselectAll()
 	}
+	currentUI = u
 	return u
+}
+
+// placeholderForURL is the entry hint for a URL: the host's usual browser when
+// one is learned, else the generic placeholder.
+func (u *appUI) placeholderForURL(url string) string {
+	if h := hostOf(url); h != "" {
+		if id := dominantHostID(loadState().Hosts[h]); id != "" {
+			if b := findBrowser(u.browsers, id); b != nil {
+				return fmt.Sprintf(u.l(msgHostTop), b.name, h)
+			}
+		}
+	}
+	return u.l(msgPlaceholder)
+}
+
+// openIncoming handles a URL delivered by macOS when the app is the default
+// browser: it honours routing rules first, otherwise shows the picker for the
+// link. Runs on the main thread.
+func (u *appUI) openIncoming(url string) {
+	if b, ok := matchRule(url); ok {
+		if err := b.open(url); err != nil {
+			log.Printf("browserchooser: open %s: %v", b.name, err)
+			return
+		}
+		recordOpen(url, b.id)
+		u.a.Quit()
+		return
+	}
+	u.url = url
+	u.hostTop = ""
+	if h := hostOf(url); h != "" {
+		u.hostTop = dominantHostID(loadState().Hosts[h])
+	}
+	u.entry.SetPlaceHolder(u.placeholderForURL(url))
+	u.w.SetContent(u.content())
+	u.refresh()
+	u.focusEntry()
+}
+
+// handleIncomingURL forwards an OS-delivered URL to the running picker.
+var currentUI *appUI
+
+func handleIncomingURL(url string) {
+	if currentUI != nil {
+		currentUI.openIncoming(url)
+	}
 }
 
 func (u *appUI) content() fyne.CanvasObject {
@@ -491,7 +539,7 @@ func (e *numEntry) TypedShortcut(s fyne.Shortcut) {
 
 func usage() {
 	fmt.Println("Usage: browserchooser [--set-default] [url]")
-	fmt.Println("  --set-default  register as the default browser (Linux)")
+	fmt.Println("  --set-default  register as the default browser (Linux/macOS)")
 	fmt.Println("  url            open the picker for this link, or copy it")
 }
 

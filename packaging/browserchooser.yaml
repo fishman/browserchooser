@@ -15,3 +15,5 @@ contents:
     dst: /usr/bin/browserchooser
   - src: ./dev.fishman.browserchooser.desktop
     dst: /usr/share/applications/dev.fishman.browserchooser.desktop
+  - src: ./Icon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/browserchooser.png

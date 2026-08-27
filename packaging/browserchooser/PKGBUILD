@@ -21,4 +21,6 @@ package() {
   install -Dm755 "$pkgname" "$pkgdir/usr/bin/$pkgname"
   install -Dm644 dev.fishman.browserchooser.desktop \
     "$pkgdir/usr/share/applications/dev.fishman.browserchooser.desktop"
+  install -Dm644 Icon.png \
+    "$pkgdir/usr/share/icons/hicolor/512x512/apps/browserchooser.png"
 }

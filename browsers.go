@@ -162,7 +162,7 @@ func isBrowserEntry(e *desktop.Entry) bool {
 
 func detectDarwin() []browser {
 	home, _ := os.UserHomeDir()
-	return darwinApps([]string{"/Applications", filepath.Join(home, "Applications")})
+	return darwinApps([]string{"/Applications", filepath.Join(home, "Applications"), "/System/Applications"})
 }
 
 // darwinApps lists browsers by scanning real .app bundles in dirs: any bundle
@@ -224,7 +224,7 @@ func handlesURL(info *appInfo) bool {
 
 func appBundlePath(name string) string {
 	home, _ := os.UserHomeDir()
-	for _, base := range []string{"/Applications", filepath.Join(home, "Applications")} {
+	for _, base := range []string{"/Applications", filepath.Join(home, "Applications"), "/System/Applications"} {
 		p := filepath.Join(base, name+".app")
 		if st, err := os.Stat(p); err == nil && st.IsDir() {
 			return p

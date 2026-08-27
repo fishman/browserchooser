@@ -1,4 +1,6 @@
 /browserchooser
+/BrowserChooser.app/
+/homebrew-browserchooser/
 /.build-aur/
 /dist/
 /.build-aur-x11/
