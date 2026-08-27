@@ -4,7 +4,7 @@
 // Round the corners of a borderless NSWindow by making it transparent and
 // clipping its content view to a rounded rect, then letting macOS draw a
 // shadow that follows that shape.
-void roundWindow(void *win) {
+void roundWindow(void *win, double radius) {
     NSWindow *w = (NSWindow *)win;
     if (w == nil) return;
     [w setOpaque:NO];
@@ -13,6 +13,6 @@ void roundWindow(void *win) {
     NSView *cv = [w contentView];
     [cv setWantsLayer:YES];
     CALayer *layer = [cv layer];
-    [layer setCornerRadius:16.0];
+    [layer setCornerRadius:radius];
     [layer setMasksToBounds:YES];
 }

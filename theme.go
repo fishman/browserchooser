@@ -91,3 +91,9 @@ func (t *nordTheme) Icon(name fyne.ThemeIconName) fyne.Resource {
 func (t *nordTheme) Size(name fyne.ThemeSizeName) float32 {
 	return theme.DefaultTheme().Size(name)
 }
+
+// isDark reports whether the active theme is the dark variant, derived live so
+// custom-drawn widgets (chips, QR button) never cache a stale light/dark choice.
+func isDark() bool {
+	return fyne.CurrentApp().Settings().ThemeVariant() == theme.VariantDark
+}

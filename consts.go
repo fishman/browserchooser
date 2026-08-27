@@ -13,6 +13,9 @@ const (
 	qrH  = 30
 	winH = 44 + 5*rowH + qrH
 
+	// macOS borderless window corner radius in points
+	macCornerRadius = 10.0
+
 	// message ids
 	msgTitle       = "title"
 	msgPlaceholder = "placeholder"

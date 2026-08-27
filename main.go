@@ -56,6 +56,18 @@ func main() {
 		}
 	}
 
+	// Force the Fyne variant from config before app.New so color resolution
+	// (entry box, text, theme.Color, isDark) follows the chosen scheme. Auto
+	// leaves Fyne to follow the system (GTK on Linux, macOS appearance).
+	switch loadSettings().Theme {
+	case "dark":
+		os.Setenv("FYNE_THEME", "dark")
+	case "light":
+		os.Setenv("FYNE_THEME", "light")
+	default:
+		os.Unsetenv("FYNE_THEME")
+	}
+
 	a := app.NewWithID(appID)
 
 	if url != "" {
@@ -73,12 +85,13 @@ func main() {
 	u := newUI(a, w, url)
 	u.applyTheme()
 	w.SetContent(u.content())
-	w.Resize(fyne.NewSize(winW, winH))
+	inset := windowInset() // macOS rounded-corner margin; 0 elsewhere
+	w.Resize(fyne.NewSize(float32(winW)+2*inset, float32(winH)+2*inset))
 	w.SetFixedSize(true)
 	w.CenterOnScreen()
 	u.refresh()
 	u.focusEntry()
-	roundCorners(w)                       // macOS borderless window rounded corners; no-op elsewhere
+	roundCorners(w)                       // macOS rounded corners; no-op elsewhere
 	installURLReceiver(handleIncomingURL) // macOS default-browser URL delivery; no-op elsewhere
 	w.ShowAndRun()
 }
@@ -93,7 +106,6 @@ type appUI struct {
 	list     *widget.List
 	rows     []row
 	loc      *i18n.Localizer
-	dark     bool
 	showQR   bool
 	selTimer *time.Timer
 	hostTop  string
@@ -113,7 +125,6 @@ func newUI(a fyne.App, w fyne.Window, url string) *appUI {
 	u := &appUI{
 		a: a, w: w, url: url, loc: newLocalizer(),
 		browsers: detectBrowsers(),
-		dark:     true, // resolved to the effective variant in applyTheme
 	}
 	if len(u.browsers) == 0 {
 		u.browsers = []browser{fallbackBrowser()}
@@ -225,7 +236,7 @@ func handleIncomingURL(url string) {
 func (u *appUI) content() fyne.CanvasObject {
 	var bottom fyne.CanvasObject
 	if u.url != "" {
-		btn := newQRButton(u.l(msgShowQR), u.toggleQR, u.dark)
+		btn := newQRButton(u.l(msgShowQR), u.toggleQR)
 		bottom = btn
 		if u.showQR {
 			if qr := u.qr(); qr != nil {
@@ -236,6 +247,12 @@ func (u *appUI) content() fyne.CanvasObject {
 	bar := container.NewBorder(u.entry, bottom, nil, nil, u.list)
 	min := canvas.NewRectangle(color.Transparent)
 	min.SetMinSize(fyne.NewSize(winW, 0))
+	// Inset the content by the rounded-corner margin so the window mask never
+	// clips the input's border (or the rows/QR corners). 0 on non-rounded windows.
+	pad := windowInset()
+	sp := canvas.NewRectangle(color.Transparent)
+	sp.SetMinSize(fyne.NewSize(pad, pad))
+	bar = container.NewBorder(sp, sp, sp, sp, bar)
 	return container.NewStack(min, bar)
 }
 
@@ -264,11 +281,10 @@ type qrButton struct {
 	widget.BaseWidget
 	text  string
 	onTap func()
-	dark  bool
 }
 
-func newQRButton(text string, onTap func(), dark bool) *qrButton {
-	b := &qrButton{text: text, onTap: onTap, dark: dark}
+func newQRButton(text string, onTap func()) *qrButton {
+	b := &qrButton{text: text, onTap: onTap}
 	b.ExtendBaseWidget(b)
 	return b
 }
@@ -302,7 +318,7 @@ type qrRenderer struct {
 }
 
 func (r *qrRenderer) applyColors() {
-	if r.b.dark {
+	if isDark() {
 		r.bg.FillColor = nordPolar3
 		r.bg.StrokeColor = nordPolar4
 		r.label.Color = nordSnow1
@@ -370,21 +386,21 @@ func (u *appUI) updateChip(o fyne.CanvasObject, num string) {
 }
 
 func (u *appUI) chipBg() color.Color {
-	if u.dark {
+	if isDark() {
 		return nordPolar3
 	}
 	return nordSnow1
 }
 
 func (u *appUI) chipBorder() color.Color {
-	if u.dark {
+	if isDark() {
 		return nordPolar4
 	}
 	return nordSnow2
 }
 
 func (u *appUI) chipText() color.Color {
-	if u.dark {
+	if isDark() {
 		return nordSnow1
 	}
 	return nordPolar4
@@ -441,21 +457,16 @@ func (u *appUI) focusEntry() {
 	})
 }
 
-// applyTheme resolves the effective variant from config: "light"/"dark" force
-// it, "auto" (default) follows the system's ThemeVariant. u.dark mirrors it so
-// the chip and QR colors follow the same source.
+// applyTheme installs the nord palette only when the config forces dark or
+// light. Auto uses the system theme (GTK on Linux, macOS appearance), which
+// Fyne's setupTheme already follows via the variant set before app.New.
 func (u *appUI) applyTheme() {
-	v := theme.VariantDark
 	switch loadSettings().Theme {
-	case "light":
-		v = theme.VariantLight
 	case "dark":
-		v = theme.VariantDark
-	default: // auto follows the system
-		v = u.a.Settings().ThemeVariant()
+		u.a.Settings().SetTheme(&nordTheme{variant: theme.VariantDark})
+	case "light":
+		u.a.Settings().SetTheme(&nordTheme{variant: theme.VariantLight})
 	}
-	u.dark = v == theme.VariantDark
-	u.a.Settings().SetTheme(&nordTheme{variant: v})
 }
 
 func (u *appUI) copyAndQuit() {

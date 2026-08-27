@@ -179,7 +179,10 @@ func darwinApps(dirs []string) []browser {
 			continue
 		}
 		for _, de := range apps {
-			if !de.IsDir() || !strings.HasSuffix(de.Name(), ".app") {
+			// Do NOT check de.IsDir(): firmlinked system apps (Safari) are
+			// reported as non-directories by os.ReadDir despite being valid
+			// bundles. The plist read below is the real filter.
+			if !strings.HasSuffix(de.Name(), ".app") {
 				continue
 			}
 			path := filepath.Join(dir, de.Name())
