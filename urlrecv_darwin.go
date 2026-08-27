@@ -3,7 +3,7 @@
 package main
 
 /*
-void installURLReceiver(void (*cb)(const char *));
+void installURLReceiver(void);
 */
 import "C"
 
@@ -27,5 +27,5 @@ func onIncomingURL(s *C.char) {
 // native NSApplication delegate is present.
 func installURLReceiver(fn func(string)) {
 	urlCallback = fn
-	C.installURLReceiver(C.onIncomingURL)
+	C.installURLReceiver()
 }
