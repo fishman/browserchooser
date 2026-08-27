@@ -14,6 +14,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 
@@ -64,11 +65,11 @@ func main() {
 		}
 	}
 
-	w := a.NewWindow(winTitle)
+	w := newWindow(a)
 	u := newUI(a, w, url)
 	u.applyTheme()
 	w.SetContent(u.content())
-	w.Resize(fyne.NewSize(winW, windowHeight()))
+	w.Resize(fyne.NewSize(winW, winH))
 	w.SetFixedSize(true)
 	w.CenterOnScreen()
 	u.refresh()
@@ -90,6 +91,16 @@ type appUI struct {
 	showQR   bool
 	selTimer *time.Timer
 	hostTop  string
+}
+
+// newWindow returns a borderless picker window. CreateSplashWindow makes it
+// undecorated and unpadded on desktop, so no title bar eats into the fixed
+// height; the app.NewWindow fallback covers non-desktop drivers.
+func newWindow(a fyne.App) fyne.Window {
+	if d, ok := a.Driver().(desktop.Driver); ok {
+		return d.CreateSplashWindow()
+	}
+	return a.NewWindow(winTitle)
 }
 
 func newUI(a fyne.App, w fyne.Window, url string) *appUI {

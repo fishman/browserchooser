@@ -1,9 +1,6 @@
 package main
 
-import (
-	"runtime"
-	"time"
-)
+import "time"
 
 const (
 	// app metadata
@@ -40,14 +37,3 @@ const (
 	// qr code render side in pixels
 	qrSize = 128
 )
-
-// windowHeight requests a little more than the content's exact minimum height
-// only where window decorations eat into it (the macOS title bar), so the
-// bottom copy row and QR button are never clipped there. Linux keeps the exact
-// fit; SetFixedSize locks the size.
-func windowHeight() float32 {
-	if runtime.GOOS == "darwin" {
-		return float32(winH + rowH)
-	}
-	return float32(winH)
-}
