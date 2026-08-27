@@ -1,0 +1,12 @@
+# GitHub Pages renders the repo root; exclude everything that is not site
+# content so vendored Go markdown (which contains Liquid-unfriendly {{...}}
+# and {%...%} literals) never gets parsed by Jekyll.
+exclude:
+  - vendor
+  - messages
+  - packaging
+  - homebrew-browserchooser
+  - .build-aur
+  - .build-aur-x11
+  - dist
+  - _site
