@@ -204,9 +204,10 @@ Existing link-picker tools, and the differences that matter:
 
 | tool | model | misses for us |
 |------|-------|---------------|
-| Browserosaurus / Browseratops | default-browser hook that pops a menu | Electron (Node + WebKit) runtime; macOS/Windows only, no Linux/Wayland |
-| Browsers (`browsers.software`) | Rust context-menu picker on the druid GUI toolkit (GTK3 on Linux) | hard to extend; the toolkit is the older GTK3, not GTK4; heavier to build than a single Go binary |
-| linkquisition | Go browser chooser with routing rules | far larger codebase to audit for a one-purpose tool |
+| [Choosy](https://choosy.app/) | macOS default-browser picker with an HTTP API for routing rules | paid ($10); macOS-only; no modern-Firefox profile support; the rule API is powerful but more complex than a plain expression language |
+| [Browserosaurus](https://github.com/will-stone/browserosaurus) / Browseratops | default-browser hook that pops a menu | Electron (Node + WebKit) runtime; macOS/Windows only, no Linux/Wayland |
+| [Browsers](https://browsers.software/) | Rust context-menu picker on the druid GUI toolkit (GTK3 on Linux) | hard to extend; the toolkit is the older GTK3, not GTK4; heavier to build than a single Go binary |
+| [linkquisition](https://github.com/Strobotti/linkquisition) | Go browser chooser with routing rules | far larger codebase to audit for a one-purpose tool |
 
 browserchooser keeps three properties the above split across them:
 
