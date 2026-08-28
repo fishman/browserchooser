@@ -1,8 +1,10 @@
 # Browser Chooser
 
-A small rofi-style browser selector for Linux, macOS, and Windows. Point it at
-a URL and pick which browser opens it, or copy the link to the clipboard and
-share it. Built with [Fyne](https://fyne.io) in Go.
+A rofi-style browser selector with three things other pickers lack: frecency
+ordering (rows ranked by how often and how recently you use each browser),
+fuzzy filtering, and real modern-Firefox profile names. Point it at a URL and
+pick which browser opens it, or copy the link to the clipboard and share it.
+One Go + [Fyne](https://fyne.io) binary for Linux, macOS, and Windows.
 
 <img width="702" height="598" alt="image" src="https://github.com/user-attachments/assets/7225b0ab-eb7e-49cc-a9c0-e9d97e484082" />
 
